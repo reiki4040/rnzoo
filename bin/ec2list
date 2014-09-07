@@ -1,0 +1,100 @@
+#!/usr/bin/python
+# -*- coding:utf-8 -*-
+from optparse import OptionParser
+from os import path
+import os
+from boto import ec2
+
+VERSION = "0.1.0"
+USAGE = """ ec2list
+  ## Description
+  
+  show your ec2 infomations with LTSV format.
+  this command make cache file that ec2 info. (default ~/.instance_cache.REGION)
+  second time, you can get ec2 info without access to AWS.
+  
+  ## Usage
+  
+  show your ec2 info at ap-northeast-1
+  
+      ec2list -r ap-northeast-1
+  
+      instance_id:i-1111111       name:Name tags Value1   state:stopped   public_ip:X.X.X.X       private_ip:Y.Y.Y.Y      instance_type:t2.micro
+      instance_id:i-22222222      name:Name tags Value2   state:running   public_ip:X.X.X.x       private_ip:Y.Y.Y.y      instance_type:m3.large
+      ...
+  
+  if you updated ec2(create new instance, stop, start and etc...), need to update cache with -f/--force option.
+  
+      ec2list -r ap-northeast-1 -f
+  
+  you can set default region by AWS_REGION environment variable.
+  
+      export AWS_REGION=ap-northeast-1
+"""
+
+DEFAULT_REGION_ENV="AWS_REGION"
+def main(options, args):
+    region = get_region(options)
+    if region is None:
+        print("please specify target region. -r/--region option or AWS_REGION environment variable.")
+        return 1
+
+    cache_path = get_cache_path(region)
+    if not path.exists(cache_path) or options.is_reload:
+        ec2conn = ec2.connect_to_region(region)
+        if ec2conn is None:
+            return 1
+
+        instances = [i for r in ec2conn.get_all_instances() for i in r.instances]
+        store_file(cache_path, instances)
+    
+    show_cache_stdout(cache_path)
+
+def get_region(options):
+    region = None
+    if options.region:
+        region = options.region
+    elif DEFAULT_REGION_ENV in os.environ:
+        region = os.environ[DEFAULT_REGION_ENV]
+
+    # TODO region validation
+    return region
+
+def get_cache_path(region):
+    return os.environ["HOME"] + "/.instance_cache." + region
+
+def show_cache_stdout(file_path):
+    with open(file_path, mode = 'r') as f:
+        for line in f:
+            print(line.rstrip())
+
+def store_file(file_path, instances):
+    with open(file_path, mode = 'w') as f:
+        for ins in instances:
+            name = ""
+            if "Name" in ins.tags:
+                name = ins.tags["Name"]
+
+            f.write("instance_id:{0}\tname:{1}\tstate:{2}\tpublic_ip:{3}\tprivate_ip:{4}\tinstance_type:{5}\n".format(
+                ins.id,
+                name,
+                ins.state,
+                ins.ip_address,
+                ins.private_ip_address,
+                ins.instance_type))
+
+if __name__ == '__main__':
+    parser = OptionParser(usage=USAGE, version=VERSION)
+    parser.add_option(
+            "-f", "--force",
+            action="store_true",
+            dest="is_reload",
+            help="reload instances info(connect to AWS)")
+    parser.add_option(
+            "-r", "--region",
+            action="store",
+            dest="region",
+            default=None,
+            help="target region. if you use default, AWS_REGION env variable.")
+    (options, args) = parser.parse_args()
+    main(options, args)

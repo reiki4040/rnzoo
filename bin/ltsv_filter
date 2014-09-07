@@ -1,0 +1,57 @@
+#!/usr/bin/python
+# -*- coding:utf-8 -*-
+import sys
+from optparse import OptionParser
+
+VERSION = '0.1.0'
+USAGE='''
+  ltsv_filter can filter by key name items that from stdin.
+  and the result output to stdout.
+
+    echo -e "k1:v1\\tk2:v2\\tk3:v3\\tk4:v4" | ./ltsv_filter -f k1,k2
+    k1:v1<TAB>k2:v2
+
+    echo -e "k1:v1\\tk2:v2\\tk3:v3\\tk4:v4" | ./ltsv_filter -f k1,k2 -o
+    v1<TAB>v2
+
+  you can specify order with filter option. it is good for using tsv
+
+    echo -e "k1:v1\\tk2:v2\\tk3:v3\\tk4:v4" | ./ltsv_filter -f k2,k1 -o
+    v2<TAB>v1
+'''
+
+def parse_ltsv(line, *filter_label):
+    ltsv = {}
+    for items in line.split('\t'):
+        k, v = items.split(':', 1)
+        if k in filter_label:
+            ltsv[k] = v
+
+    return ltsv
+
+def print_dict2ltsv(dictionary, *filter_labels):
+    print '\t'.join(['{0}:{1}'.format(k, dictionary[k]) for k in filter_labels])
+
+def print_dict2tsv(dictionary, *filter_labels):
+    print '\t'.join([dictionary[v] for v in filter_labels])
+
+def main(options, args):
+    filter_labels = args
+    for line in sys.stdin:
+        ltsv = parse_ltsv(line.rstrip(), *filter_labels)
+
+        if options.tsv_mode:
+            print_dict2tsv(ltsv, *filter_labels)
+        else:
+            print_dict2ltsv(ltsv, *filter_labels)
+
+if __name__ == '__main__':
+    parser = OptionParser(usage=USAGE, version=VERSION)
+    parser.add_option(
+            "-t", "--tsv",
+            action="store_true",
+            dest="tsv_mode",
+            default=False,
+            help="output only values.")
+    (options, args) = parser.parse_args()
+    main(options, args)

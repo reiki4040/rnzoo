@@ -1,6 +1,6 @@
 #!/bin/sh
 
-VERSION="0.1.0"
+VERSION="0.1.1"
 
 info() {
   echo "$*"
@@ -90,7 +90,7 @@ doctor() {
 }
 
 ec2ssh() {
-  local host=$(ec2list $fopt $region_opt | ltsv_filter -t name $ip_type | peco --query "$*" | cut -f2)
+  local host=$(ec2list $fopt $region_opt | grep "state:running" | ltsv_filter -t name $ip_type | sort | peco --query "$*" | cut -f2)
   if [ -z "$host" ]; then
      err "No select target instance."
      exit 1

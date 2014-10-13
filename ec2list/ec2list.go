@@ -132,6 +132,10 @@ func ec2list(reload bool, region *aws.Region) {
 	}
 }
 
+type Instances struct {
+	Instances []ec2.Instance `xml:"Instance"`
+}
+
 func StoreCache(instances []ec2.Instance, cachePath string) error {
 	cacheFile, err := os.Create(cachePath)
 	if err != nil {
@@ -142,10 +146,9 @@ func StoreCache(instances []ec2.Instance, cachePath string) error {
 	w := bufio.NewWriter(cacheFile)
 	enc := xml.NewEncoder(w)
 	enc.Indent("", "  ")
-	for _, i := range instances {
-		if err := enc.Encode(i); err != nil {
-			return err
-		}
+	toXml := Instances{Instances: instances}
+	if err := enc.Encode(toXml); err != nil {
+		return err
 	}
 
 	return nil
@@ -160,19 +163,19 @@ func LoadCache(cachePath string) ([]ec2.Instance, error) {
 
 	r := bufio.NewReader(cacheFile)
 	dec := xml.NewDecoder(r)
-	instances := make([]ec2.Instance, 0)
+	instances := Instances{}
 	err = dec.Decode(&instances)
 	if err != nil {
 		return nil, err
 	}
 
-	return instances, nil
+	return instances.Instances, nil
 }
 
 func GetInstances(auth aws.Auth, region *aws.Region) ([]ec2.Instance, error) {
-	ec2 := ec2.New(auth, aws.APNortheast)
+	ec2conn := ec2.New(auth, aws.APNortheast)
 
-	resp, err := ec2.DescribeInstances(nil, nil)
+	resp, err := ec2conn.DescribeInstances(nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +184,14 @@ func GetInstances(auth aws.Auth, region *aws.Region) ([]ec2.Instance, error) {
 		return nil, errors.New("there is no instance.")
 	}
 
-	return resp.Reservations[0].Instances, nil
+	instances := make([]ec2.Instance, 0)
+	for _, r := range resp.Reservations {
+		for _, i := range r.Instances {
+			instances = append(instances, i)
+		}
+	}
+
+	return instances, nil
 }
 
 func showLtsv(i ec2.Instance) {

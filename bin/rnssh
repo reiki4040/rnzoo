@@ -93,7 +93,7 @@ doctor() {
 ec2ssh() {
   local host=$(ec2list $fopt $region_opt | grep "state:running" | ltsv_pipe -t name $ip_type | sort | peco --query "$*" --prompt "$PROMPT" | head -1 | cut -f2)
   if [ -z "$host" ]; then
-     err "No select target instance."
+     err " No select target or there is no instance."
      exit 1
   fi
 

@@ -30,7 +30,7 @@ do
     done
 
 	# script command
-	cp -a $current/bin/ec2ssh $work_dir/bin/
+	cp -a $current/bin/rnssh $work_dir/bin/
 
 	# something
 	for f in $files

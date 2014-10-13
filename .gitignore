@@ -1,0 +1,8 @@
+archives/
+work/
+bin/
+!bin/ec2ssh
+ec2list/ec2list
+ltsv_pipe/ltsv_pipe
+
+

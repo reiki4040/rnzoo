@@ -1,0 +1,158 @@
+#!/bin/sh
+
+VERSION="0.1.1"
+
+info() {
+  echo "$*"
+}
+
+err() {
+  echo "$*" >&2
+}
+
+usage() {
+  cat << _EOF
+usage:
+
+  $(basename $0) [-f] [-p] [-l SSH_USER] [-s] query strings ...
+  $(basename $0) -h
+  $(basename $0) -v
+  $(basename $0) -d
+
+*caution to option and arguments order*
+  the options must be before arguments.
+    
+  - working
+  $(basename $0) -s query string
+
+  - not working
+  $(basename $0) query string -s
+
+options:
+  -f: reload ec2 instances infomaion. connect to AWS.
+      you have to specify this option after you modified instances.
+	  (launch, start, stop, modify name, etc...)
+
+  -p: use Private IP address. for VPN/Direct connect.
+      default use Global/Public IP address. 
+
+  -r: target region. if you set 'AWS_REGION' environment variable, use it.
+      if you specify both, use -r options.
+
+  -s: show ssh command string that would be run. (debug)
+
+options for ssh:
+  -l: ssh user.
+  -i: identity file path.
+
+options for help:
+  -h: show this usage.
+  -v: show version.
+  -d: check environment variable and using command.
+      'AWS_ACCESS_KEY_ID',
+	  'AWS_SECRET_ACCESS_KEY'
+	  'ec2list',
+	  'ltsv_pipe'
+	  'peco'
+
+args:
+
+  query string...: filtering ec2 instances list.
+
+_EOF
+}
+
+version() {
+  info $VERSION
+}
+
+doctor() {
+  rcode=0
+  ec2list_path=$(which ec2list)
+  if [ -z "$ec2list_path" ]; then
+    err "Not found ec2list command. please check PATH."
+    rcode=1
+  fi
+
+  ltsv_pipe_path=$(which ltsv_pipe)
+  if [ -z "$ltsv_pipe_path" ]; then
+    err "Not found ltsv_pipe command. please check PATH."
+    rcode=1
+  fi
+
+  peco_path=$(which peco)
+  if [ -z "$peco_path" ]; then
+    err "Not found peco command. please install peco(https://github.com/peco/peco)."
+    rcode=1
+  fi
+
+  exit $rcode
+}
+
+ec2ssh() {
+  local host=$(ec2list $fopt $region_opt | grep "state:running" | ltsv_pipe -t name $ip_type | sort | peco --query "$*" | cut -f2)
+  if [ -z "$host" ]; then
+     err "No select target instance."
+     exit 1
+  fi
+
+  if [ -n "$show_ssh" ]; then
+    info "ssh $ssh_user_opt $ssh_identity_file $host"
+  else
+    ssh $ssh_user_opt $ssh_identity_file $host
+  fi
+}
+
+# global
+fopt=""
+ssh_user_opt=""
+ip_type="public_ip"
+show_ssh=""
+region_opt=""
+# Parse command line options.
+while getopts dfhi:l:pr:sv OPT; do
+  case "$OPT" in
+    d)
+      doctor
+      ;;
+    f)
+      fopt="-f"
+      ;;
+    h)
+      usage
+      exit 0
+      ;;
+    i)
+      ls "$OPTARG" > /dev/null 2>&1
+      if [ 0 -ne $? ]; then
+          err "No such ssh identity file: $OPTARG"
+          exit 1
+      fi
+      ssh_identity_file="-i $OPTARG"
+      ;;
+    l)
+      ssh_user_opt="-l $OPTARG"
+      ;;
+    p)
+      ip_type="private_ip"
+      ;;
+    r)
+      region_opt="-r $OPTARG"
+      ;;
+    s)
+      show_ssh="show"
+      ;;
+    v)
+      version
+      exit 0
+      ;;
+    *)
+      usage >&2
+      exit 1
+      ;;
+  esac
+done
+shift $((OPTIND - 1))
+
+# main
+ec2ssh $*

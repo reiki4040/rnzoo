@@ -92,14 +92,13 @@ func main() {
 	ec2list(force_reload, region)
 }
 
-func GetRegion(region string) (*aws.Region, error) {
-	switch strings.ToLower(region) {
-	case "ap-northeast-1":
-		return &aws.APNortheast, nil
-		// TODO other region
-	default:
+func GetRegion(regionName string) (*aws.Region, error) {
+	region, ok := aws.Regions[strings.ToLower(regionName)]
+	if !ok {
 		return nil, errors.New(fmt.Sprintf("invalid region name: %s", region))
 	}
+
+	return &region, nil
 }
 
 func ec2list(reload bool, region *aws.Region) {

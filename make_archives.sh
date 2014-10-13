@@ -7,7 +7,7 @@ if [ -z "$current" ]; then
   exit 1
 fi
 oss="darwin"
-archs="386"
+archs="386 amd64"
 
 cmds="ec2list ltsv_pipe"
 files="LICENSE README.md"

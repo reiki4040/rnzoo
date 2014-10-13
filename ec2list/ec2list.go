@@ -89,7 +89,27 @@ func main() {
 		log.Fatalf("failed region: %s", err.Error())
 	}
 
+	err = CreateRnzooDir()
+	if err != nil {
+		log.Printf("can not create rnzoo dir: %s\n", err.Error())
+	}
+
 	ec2list(force_reload, region)
+}
+
+func CreateRnzooDir() error {
+	rnzooDir := os.Getenv("HOME") + "/.rnzoo"
+
+	if _, err := os.Stat(rnzooDir); os.IsNotExist(err) {
+		err = os.Mkdir(rnzooDir, 0700)
+		if err != nil {
+			if !os.IsExist(err) {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func GetRegion(regionName string) (*aws.Region, error) {

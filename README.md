@@ -55,7 +55,7 @@ rnzoo is going to add way that generate ssh config from AWS.
 ## Command
 
 | command | description |
-|:-|:-|
+|---------|-------------|
 | rnssh | you can select server easy from list and do ssh. |
 
 ## How to use

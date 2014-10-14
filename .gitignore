@@ -3,6 +3,5 @@ work/
 bin/
 !bin/rnssh
 ec2list/ec2list
-ltsv_pipe/ltsv_pipe
 
 

@@ -39,7 +39,12 @@ do
 	done
 
 	cd $current/$WORK_DIR
+	# tar.gz
 	tar -zcf "$rnzoo_prefix".tar.gz $rnzoo_prefix/*
 	mv "$rnzoo_prefix".tar.gz $current/$DEST_DIR/
+
+	# zip
+	zip -r "$rnzoo_prefix" "./$rnzoo_prefix"
+	mv "$rnzoo_prefix".zip $current/$DEST_DIR/
   done
 done

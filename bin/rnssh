@@ -1,6 +1,7 @@
 #!/bin/sh
 
-VERSION="0.1.1"
+VERSION="0.2.0"
+PROMPT="Select ssh instance. You can do filtering>"
 
 info() {
   echo "$*"
@@ -52,7 +53,7 @@ options for help:
       'AWS_ACCESS_KEY_ID',
 	  'AWS_SECRET_ACCESS_KEY'
 	  'ec2list',
-	  'ltsv_filter'
+	  'ltsv_pipe'
 	  'peco'
 
 args:
@@ -74,9 +75,9 @@ doctor() {
     rcode=1
   fi
 
-  ltsv_filter_path=$(which ltsv_filter)
-  if [ -z "$ltsv_filter_path" ]; then
-    err "Not found ltsv_filter command. please check PATH."
+  ltsv_pipe_path=$(which ltsv_pipe)
+  if [ -z "$ltsv_pipe_path" ]; then
+    err "Not found ltsv_pipe command. please check PATH."
     rcode=1
   fi
 
@@ -90,9 +91,9 @@ doctor() {
 }
 
 ec2ssh() {
-  local host=$(ec2list $fopt $region_opt | grep "state:running" | ltsv_filter -t name $ip_type | sort | peco --query "$*" | cut -f2)
+  local host=$(ec2list $fopt $region_opt | grep "state:running" | ltsv_pipe -t name $ip_type | sort | peco --query "$*" --prompt "$PROMPT" | head -1 | cut -f2)
   if [ -z "$host" ]; then
-     err "No select target instance."
+     err " No select target or there is no instance."
      exit 1
   fi
 

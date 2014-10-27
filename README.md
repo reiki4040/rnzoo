@@ -3,23 +3,31 @@ rnzoo
 
 rnzoo is useful cli to use ec2.
 
-## How to Install
+## How to install and settings
 
+- **homebrew** (recommend)
 - download archive
-- homebrew (coming soon... maybe)
 
-### download and set PATH
+### homebrew
+
+    brew tap peco/peco
+    brew tap reiki4040/rnzoo
+    brew install rnzoo
+
+it is easy!
+
+### download archive and set PATH
 
 download tar.gz file and set PATH
 
-    tar zxf rnzoo-darwin-amd64.tar.gz
+    unzip rnzoo-darwin-amd64.zip
 
     # set .bashrc etc...
     export PATH="PATH:$pathto/rnzoo/bin"
 
-## dependency
+### dependency
 
-### [peco](https://github.com/peco/peco)
+ [peco](https://github.com/peco/peco)
 
     brew tap peco/peco
     brew install peco
@@ -110,6 +118,7 @@ already filtered and it is able to modify if you want.
 ## Features in future
 
 - rnzoo is going to add way that generate ssh config from AWS.
+- ssh multi instances with tmux.
 
 ## TODO
 

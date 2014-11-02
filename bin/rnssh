@@ -22,7 +22,7 @@ usage:
 
 *caution to option and arguments order*
   the options must be before arguments.
-    
+
   - working
   $(basename $0) -s query string
 
@@ -34,8 +34,12 @@ options:
       you have to specify this option after you modified instances.
 	  (launch, start, stop, modify name, etc...)
 
+  -P: use Public IP address. this is default ssh host type.
+      if you have set RNSSH_HOST_TYPE variable and value is private/name,
+      you can ssh with Public IP temporarily with this option.
+
   -p: use Private IP address. for VPN/Direct connect.
-      default use Global/Public IP address. 
+      you can ssh with Private IP always with RNSSH_HOST_TYPE environment variable.
 
   -n: use Name tag.
       this option for ssh config that Host named by ec2 Name tag.
@@ -45,6 +49,8 @@ options:
         HostName X.X.X.X (or domain)
         User ec2-user
         IdentityFile path/to/key
+
+      you can ssh with Name tag always with RNSSH_HOST_TYPE environment variable.
 
   -r: target region. if you set 'AWS_REGION' environment variable, use it.
       if you specify both, use -r options.
@@ -68,6 +74,14 @@ options for help:
 args:
 
   query string...: filtering ec2 instances list.
+
+Environment variables:
+
+  RNSSH_HOST_TYPE: this variable can specify default ssh host types.
+
+    public  : use Public IP (default)
+    private : use Private IP
+    name    : use Name tag
 
 _EOF
 }
@@ -104,18 +118,58 @@ exclusive_options() {
 below options can not use simultaneously.
 
   -p: use private IP address.
+  -P: use public IP address.
   -n: use Name tag.
 
 _EOF
   exit 1
 }
 
-rnssh() {
-  if [ -z "$use_name" ]; then
-    local host=$(ec2list $fopt $region_opt | grep "state:running" | ltsv_pipe -t name $ip_type | sort | peco --query "$*" --prompt "$PROMPT" | head -1 | cut -f2)
-  else
-    local host=$(ec2list $fopt $region_opt | grep "state:running" | ltsv_pipe -t name | sort | peco --query "$*" --prompt "$PROMPT" | head -1 | cut -f1)
+get_default_ssh_host_type() {
+  local env_ssh_host_type=$RNSSH_HOST_TYPE
+  case "$env_ssh_host_type" in
+    public|private|name)
+      ssh_host_type="$env_ssh_host_type"
+      ;;
+    "")
+      ssh_host_type="public"
+      ;;
+    *)
+      show_rnzoo_ssh_host_type_error
+      exit 1
+      ;;
+  esac
+}
+
+show_rnzoo_ssh_host_type_error() {
+  cat << _EOF
+invalid RNSSH_HOST_TYPE value has given. valid values are below.
+
+  public
+  private
+  name
+
+_EOF
+}
+
+set_option_host_type() {
+  local option_host_type=$1
+  if [ -n "$ssh_host_type_option" ]; then
+    exclusive_options
   fi
+  ssh_host_type=$option_host_type
+  ssh_host_type_option=$option_host_type
+}
+
+rnssh() {
+  case "$ssh_host_type" in
+    public | private)
+      local host=$(ec2list $fopt $region_opt | grep "state:running" | ltsv_pipe -t name "$ssh_host_type"_ip | sort | peco --query "$*" --prompt "$PROMPT" | head -1 | cut -f2)
+      ;;
+    name)
+      local host=$(ec2list $fopt $region_opt | grep "state:running" | ltsv_pipe -t name | sort | peco --query "$*" --prompt "$PROMPT" | head -1 | cut -f1)
+      ;;
+  esac
 
   if [ -z "$host" ]; then
      err " No select target or there is no instance."
@@ -132,12 +186,14 @@ rnssh() {
 # global
 fopt=""
 ssh_user_opt=""
-ip_type="public_ip"
+ssh_host_type=""
+ssh_host_type_option=""
+get_default_ssh_host_type
 show_ssh=""
 region_opt=""
-use_name=""
+echo $ssh_host_type
 # Parse command line options.
-while getopts dfhi:l:npr:sv OPT; do
+while getopts dfhi:l:npPr:sv OPT; do
   case "$OPT" in
     d)
       doctor
@@ -161,16 +217,13 @@ while getopts dfhi:l:npr:sv OPT; do
       ssh_user_opt="-l $OPTARG"
       ;;
     n)
-      if [ "$ip_type" != "public_ip" ]; then
-        exclusive_options
-      fi
-      use_name="use_name"
+      set_option_host_type "name"
       ;;
     p)
-      if [ -n "$use_name" ]; then
-        exclusive_options
-      fi
-      ip_type="private_ip"
+      set_option_host_type "private"
+      ;;
+    P)
+      set_option_host_type "public"
       ;;
     r)
       region_opt="-r $OPTARG"

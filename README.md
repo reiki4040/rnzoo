@@ -114,6 +114,18 @@ already filtered and it is able to modify if you want.
     web server1 X.X.X.X
     web server2 Y.Y.Y.Y
 
+### change default ssh host type with `RNSSH_HOST_TYPE`
+
+if you always rnssh with `-p`(Private IP) or `-n`(Name Tag), RNSSH_HOST_TYPE environment variable will be help.
+this variable can change default ssh host type.
+
+valid values are below.
+
+- `private`
+- `name`
+- `public` (default)
+
+and you can use `-P` `-p` `-n`, when you want to use other ssh host type temporarily.
 
 ## Features in future
 

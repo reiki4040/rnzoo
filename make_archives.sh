@@ -1,4 +1,5 @@
 #!/bin/sh
+version=$(bin/rnssh -v)
 
 WORK_DIR="work"
 DEST_DIR="archives"
@@ -18,7 +19,7 @@ for os in $oss
 do
   for arch in $archs
   do
-    rnzoo_prefix="rnzoo-$os-$arch"
+    rnzoo_prefix="rnzoo-$version-$os-$arch"
     work_dir="$current/$WORK_DIR/$rnzoo_prefix"
     mkdir -p "$work_dir/bin"
 
@@ -44,7 +45,7 @@ do
 	mv "$rnzoo_prefix".tar.gz $current/$DEST_DIR/
 
 	# zip
-	zip -r "$rnzoo_prefix" "./$rnzoo_prefix"
+	zip -r "$rnzoo_prefix".zip "./$rnzoo_prefix"
 	mv "$rnzoo_prefix".zip $current/$DEST_DIR/
   done
 done

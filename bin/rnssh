@@ -191,7 +191,6 @@ ssh_host_type_option=""
 get_default_ssh_host_type
 show_ssh=""
 region_opt=""
-echo $ssh_host_type
 # Parse command line options.
 while getopts dfhi:l:npPr:sv OPT; do
   case "$OPT" in

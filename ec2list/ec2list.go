@@ -15,30 +15,30 @@ import (
 )
 
 const (
-	Version = "0.1.0"
+	Version = "0.1.1"
 	Usage   = `ec2list
   ## Description
-  
+
   show your ec2 infomations with LTSV format.
   this command make cache file that ec2 info. (default ~/.rnzoo/instance.cache.REGION)
   second time, you can get ec2 info without access to AWS.
-  
+
   ## Usage
-  
+
   show your ec2 info at ap-northeast-1
-  
+
       ec2list -r ap-northeast-1
-  
+
       instance_id:i-1111111       name:Name tags Value1   state:stopped   public_ip:X.X.X.X       private_ip:Y.Y.Y.Y      instance_type:t2.micro
       instance_id:i-22222222      name:Name tags Value2   state:running   public_ip:X.X.X.x       private_ip:Y.Y.Y.y      instance_type:m3.large
       ...
-  
+
   if you updated ec2(create new instance, stop, start and etc...), need to update cache with -f/--force option.
-  
+
       ec2list -r ap-northeast-1 -f
-  
+
   you can set default region by AWS_REGION environment variable.
-  
+
       export AWS_REGION=ap-northeast-1`
 
 	CACHE_PATH_PREFIX = "/Users/reiki/.rnzoo/instances.cache."
@@ -192,7 +192,7 @@ func LoadCache(cachePath string) ([]ec2.Instance, error) {
 }
 
 func GetInstances(auth aws.Auth, region *aws.Region) ([]ec2.Instance, error) {
-	ec2conn := ec2.New(auth, aws.APNortheast)
+	ec2conn := ec2.New(auth, *region)
 
 	resp, err := ec2conn.DescribeInstances(nil, nil)
 	if err != nil {

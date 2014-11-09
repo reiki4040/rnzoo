@@ -40,12 +40,8 @@ do
 	done
 
 	cd $current/$WORK_DIR
-	# tar.gz
-	tar -zcf "$rnzoo_prefix".tar.gz $rnzoo_prefix/*
-	mv "$rnzoo_prefix".tar.gz $current/$DEST_DIR/
-
-	# zip
 	zip -r "$rnzoo_prefix".zip "./$rnzoo_prefix"
 	mv "$rnzoo_prefix".zip $current/$DEST_DIR/
+	sha1sum "$current/$DEST_DIR/$rnzoo_prefix.zip"
   done
 done

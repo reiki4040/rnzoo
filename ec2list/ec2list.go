@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	Version = "0.1.1"
+	Version = "0.1.2"
 	Usage   = `ec2list
   ## Description
 
@@ -41,7 +41,10 @@ const (
 
       export AWS_REGION=ap-northeast-1`
 
-	CACHE_PATH_PREFIX = "/Users/reiki/.rnzoo/instances.cache."
+	ENV_HOME                    = "HOME"
+	ENV_AWS_REGION              = "AWS_REGION"
+	RNZOO_DIR_NAME              = ".rnzoo"
+	RNZOO_EC2_LIST_CACHE_PREFIX = "instances.cache."
 )
 
 var (
@@ -80,10 +83,6 @@ func main() {
 		os.Exit(0)
 	}
 
-	if regionName == "" {
-		regionName = os.Getenv("AWS_REGION")
-	}
-
 	region, err := GetRegion(regionName)
 	if err != nil {
 		log.Fatalf("failed region: %s", err.Error())
@@ -97,8 +96,18 @@ func main() {
 	ec2list(force_reload, region)
 }
 
+func GetRnzooDir() string {
+	rnzooDir := os.Getenv(ENV_HOME) + string(os.PathSeparator) + RNZOO_DIR_NAME
+	return rnzooDir
+}
+
+func GetEc2listCachePath(region *aws.Region) string {
+	rnzooDir := GetRnzooDir()
+	return rnzooDir + string(os.PathSeparator) + RNZOO_EC2_LIST_CACHE_PREFIX + region.Name
+}
+
 func CreateRnzooDir() error {
-	rnzooDir := os.Getenv("HOME") + "/.rnzoo"
+	rnzooDir := GetRnzooDir()
 
 	if _, err := os.Stat(rnzooDir); os.IsNotExist(err) {
 		err = os.Mkdir(rnzooDir, 0700)
@@ -112,10 +121,15 @@ func CreateRnzooDir() error {
 	return nil
 }
 
+// get Region from string region name.
 func GetRegion(regionName string) (*aws.Region, error) {
+	if regionName == "" {
+		regionName = os.Getenv(ENV_AWS_REGION)
+	}
+
 	region, ok := aws.Regions[strings.ToLower(regionName)]
 	if !ok {
-		return nil, errors.New(fmt.Sprintf("invalid region name: %s", region))
+		return nil, errors.New(fmt.Sprintf("unknown region name: %s", regionName))
 	}
 
 	return &region, nil
@@ -123,7 +137,7 @@ func GetRegion(regionName string) (*aws.Region, error) {
 
 func ec2list(reload bool, region *aws.Region) {
 	var instances []ec2.Instance
-	cachePath := CACHE_PATH_PREFIX + region.Name
+	cachePath := GetEc2listCachePath(region)
 	if _, err := os.Stat(cachePath); os.IsNotExist(err) || reload {
 		auth, err := aws.EnvAuth()
 		if err != nil {

@@ -162,18 +162,29 @@ set_option_host_type() {
 }
 
 rnssh() {
+
+  IFS='@' read -r username hostname <<< "$*"
+  if [ -z "$hostname" ]; then
+    hostname=$username
+    username=""
+  fi
+
   case "$ssh_host_type" in
     public | private)
-      local host=$(ec2list $fopt $region_opt | grep "state:running" | ltsv_pipe -t name "$ssh_host_type"_ip | sort | peco --query "$*" --prompt "$PROMPT" | head -1 | cut -f2)
+      local host=$(ec2list $fopt $region_opt | grep "state:running" | ltsv_pipe -t name "$ssh_host_type"_ip | sort | peco --query "$hostname" --prompt "$PROMPT" | head -1 | cut -f2)
       ;;
     name)
-      local host=$(ec2list $fopt $region_opt | grep "state:running" | ltsv_pipe -t name | sort | peco --query "$*" --prompt "$PROMPT" | head -1 | cut -f1)
+      local host=$(ec2list $fopt $region_opt | grep "state:running" | ltsv_pipe -t name | sort | peco --query "$hostname" --prompt "$PROMPT" | head -1 | cut -f1)
       ;;
   esac
 
   if [ -z "$host" ]; then
      err " No select target or there is no instance."
      exit 1
+  fi
+
+  if [ -n "$username" ]; then
+    host="$username@$host"
   fi
 
   if [ -n "$show_ssh" ]; then

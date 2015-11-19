@@ -3,6 +3,8 @@ rnzoo
 
 rnzoo is useful cli to use ec2.
 
+rnzoo has been refactor...
+
 ## How to install and settings
 
 - **homebrew** (recommend)
@@ -10,134 +12,51 @@ rnzoo is useful cli to use ec2.
 
 ### homebrew
 
-    brew tap peco/peco
-    brew tap reiki4040/rnzoo
-    brew install rnzoo
-
-it is easy!
-
-### download archive and set PATH
-
-download tar.gz file and set PATH
-
-    unzip rnzoo-darwin-amd64.zip
-
-    # set .bashrc etc...
-    export PATH="PATH:$pathto/rnzoo/bin"
-
-### dependency
-
- [peco](https://github.com/peco/peco)
-
-    brew tap peco/peco
-    brew install peco
-
-if you want more detail, please reference [peco project page](https://github.com/peco/peco)
+```
+brew tap reiki4040/rnzoo
+brew install rnzoo
+```
 
 ## Settings
 
-- set AWS ENV variables
-- ssh config (Optional but recommended)
+- set AWS credentials
+- set AWS default region
 
-### set AWS variables (.bashrc, .bash_profile etc...)
+### set AWS credentials
 
-    export AWS_ACCESS_KEY_ID=
-    export AWS_SECRET_ACCESS_KEY=
-    
-    # option: specify default region
-    export AWS_REGION=
+* credential file (`~/.aws/credentials`)
 
+```
+[default]
+aws_access_key_id=your_key_id
+aws_secret_access_key=your_secret
+```
 
-### ssh config
+* Environment variable (`~/.bashrc`, `~/.bash_profile`, etc...)
 
-`vi ~/.ssh/config`
+```
+export AWS_ACCESS_KEY_ID=
+export AWS_SECRET_ACCESS_KEY=
+```
 
-    Host X.X.X.X
-      User your_user
-      IdentityFile you_key_file
+### set default AWS region
 
-***More useful If you added your ec2 instances to ssh config before using rnssh by yourself.***
+* Environment variable (`~/.bashrc`, `~/.bash_profile`, etc...)
 
-rnzoo is going to add way that generate ssh config from AWS.
+```
+export AWS_REGION=ap-northeast-1
+```
 
-## Command
+## Sub Command
 
-| command | description |
-|---------|-------------|
-| rnssh | you can select server easy from list and do ssh. |
-
-## How to use
-
-### run command
-
-    rnssh -l ssh_user -i identity_file
-
-you can run `rnssh` (without options `-l`,`-i`) if you added instances to ssh config.
-
-show ec2 instances list. you can filter instances list by peco.
-
-    Select ssh instance. You can do filtering>
-    instance name1 X.X.X.X
-    instance name2 X.X.X.Y
-    
-choose the instance, then start ssh to the instance.
-
-    instanse $ 
-
-## More useful
-
-### cache
-
-rnssh does create cache the instances list automatically.
-if you update instances, you must be reload with `-f` option.
-(launch, start, stop etc...)
-
-without `-f`, rnssh does load from cache file. it is faster than connect to AWS(with `-f`).
-
-### ssh config
-
-if you created ssh config (ex ~/.ssh/config), rnssh can works without `-l`, `-i` options.
-
-    Host <ec2_ipaddress>
-         User <ssh_user>
-         IdentityFile <to_identity_fie_path>
-
-### filtering
-
-rnssh can filter instances with using arguments 
-
-    rnssh web server
-
-already filtered and it is able to modify if you want.
-
-    QUERY>web server
-    web server1 X.X.X.X
-    web server2 Y.Y.Y.Y
-
-### change default ssh host type with `RNSSH_HOST_TYPE`
-
-if you always rnssh with `-p`(Private IP) or `-n`(Name Tag), RNSSH_HOST_TYPE environment variable will be help.
-this variable can change default ssh host type.
-
-valid values are below.
-
-- `private`
-- `name`
-- `public` (default)
-
-and you can use `-P` `-p` `-n`, when you want to use other ssh host type temporarily.
-
-## Features in future
-
-- rnzoo is going to add way that generate ssh config from AWS.
-- ssh multi instances with tmux.
-
-## TODO
-
-- Test code
+| sub command | description |
+|-------------|-------------|
+| ec2start | start ec2 instances (it already created, not launch) |
+| ec2stop | stop ec2 instances |
+| ec2list | listing ec2 instances |
 
 ## Copyright and LICENSE
 
-Copyright (c) 2014- reiki4040
+Copyright (c) 2015- reiki4040
 
 MIT LICENSE

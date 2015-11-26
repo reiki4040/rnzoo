@@ -38,7 +38,7 @@ func ChooseEC2(region, msg string) ([]string, error) {
 		choiceSlice = append(choiceSlice, c)
 	}
 
-	chosen, err := peco.Choose("EC2 instance", "please select EC instance", choiceSlice)
+	chosen, err := peco.Choose("EC2 instance", "please select EC instance", "", choiceSlice)
 	if err != nil {
 		return nil, err
 	}

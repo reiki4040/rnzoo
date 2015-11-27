@@ -14,7 +14,7 @@ import (
 	"github.com/codegangsta/cli"
 
 	"github.com/reiki4040/cstore"
-	//"github.com/reiki4040/peco"
+	"github.com/reiki4040/peco"
 )
 
 const (
@@ -103,6 +103,14 @@ func NewRnzooCStoreManager() (*EC2Handler, error) {
 	}
 
 	return NewEC2Handler(m), nil
+}
+
+func ConvertChoosableList(ec2List []*ChoosableEC2) []peco.Choosable {
+	choices := make([]peco.Choosable, 0, len(ec2List))
+	for _, c := range ec2List {
+		choices = append(choices, c)
+	}
+	return choices
 }
 
 type ChoosableEC2 struct {
@@ -201,13 +209,6 @@ func ConvertChoosableEC2List(instances []*ec2.Instance) []*ChoosableEC2 {
 	}
 
 	sort.Sort(ChoosableEC2s(choosableEC2List))
-
-	//choices := make([]peco.Choosable, 0, len(choosableEC2List))
-	//for _, c := range choosableEC2List {
-	//	choices = append(choices, c)
-	//}
-	//return choices
-
 	return choosableEC2List
 }
 

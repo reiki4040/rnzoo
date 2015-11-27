@@ -10,6 +10,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 
 	"github.com/codegangsta/cli"
+
+	"github.com/reiki4040/peco"
 )
 
 var commandEc2start = cli.Command{
@@ -38,6 +40,34 @@ var commandEc2stop = cli.Command{
 	},
 }
 
+func chooseEC2(region string, reload bool) ([]*string, error) {
+	h, err := NewRnzooCStoreManager()
+	if err != nil {
+		return nil, err
+	}
+
+	ec2list, err := h.LoadChoosableEC2List(region, reload)
+	if err != nil {
+		return nil, err
+	}
+
+	choices := ConvertChoosableList(ec2list)
+
+	chosens, err := peco.Choose("EC2", "select instances", "", choices)
+	if err != nil {
+		return nil, err
+	}
+
+	ids := make([]*string, 0, len(chosens))
+	for _, c := range chosens {
+		if ec2, ok := c.(*ChoosableEC2); ok {
+			ids = append(ids, aws.String(ec2.InstanceId))
+		}
+	}
+
+	return ids, nil
+}
+
 func doEc2start(c *cli.Context) {
 	prepare(c)
 
@@ -52,22 +82,20 @@ func doEc2start(c *cli.Context) {
 	}
 
 	instanceId := c.String(OPT_INSTANCE_ID)
-	ids := make([]*string, 0, 1)
+	var ids []*string
 	if instanceId == "" {
-		instanceIds, err := ChooseEC2(region, "select instance")
+		var err error
+		ids, err = chooseEC2(region, false)
 		if err != nil {
-			log.Fatalf(err.Error())
+			log.Fatalf("error during selecting: %s", err.Error())
 			return
 		}
 
-		for _, i := range instanceIds {
-			ids = append(ids, aws.String(i))
-		}
 	} else {
-		ids = append(ids, aws.String(instanceId))
+		ids = []*string{aws.String(instanceId)}
 	}
 
-	cli := ec2.New(session.New(), &aws.Config{Region: aws.String("ap-northeast-1")})
+	cli := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
 
 	params := &ec2.StartInstancesInput{
 		InstanceIds: ids,
@@ -102,22 +130,21 @@ func doEc2stop(c *cli.Context) {
 	}
 
 	instanceId := c.String(OPT_INSTANCE_ID)
-	ids := make([]*string, 0, 1)
+	var ids []*string
 	if instanceId == "" {
-		instanceIds, err := ChooseEC2(region, "select instance")
+		var err error
+		ids, err = chooseEC2(region, false)
 		if err != nil {
-			log.Fatalf(err.Error())
+			log.Fatalf("error during selecting: %s", err.Error())
 			return
 		}
 
-		for _, i := range instanceIds {
-			ids = append(ids, aws.String(i))
-		}
 	} else {
-		ids = append(ids, aws.String(instanceId))
+		ids = []*string{aws.String(instanceId)}
 	}
 
 	cli := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
+
 	params := &ec2.StopInstancesInput{
 		InstanceIds: ids,
 	}

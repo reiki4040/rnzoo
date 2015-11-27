@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/codegangsta/cli"
@@ -79,6 +80,26 @@ func validateInstanceId(id string) error {
 	}
 
 	// TODO hex check
+
+	return nil
+}
+
+func GetRnzooDir() string {
+	rnzooDir := os.Getenv(ENV_HOME) + string(os.PathSeparator) + RNZOO_DIR_NAME
+	return rnzooDir
+}
+
+func CreateRnzooDir() error {
+	rnzooDir := GetRnzooDir()
+
+	if _, err := os.Stat(rnzooDir); os.IsNotExist(err) {
+		err = os.Mkdir(rnzooDir, 0700)
+		if err != nil {
+			if !os.IsExist(err) {
+				return err
+			}
+		}
+	}
 
 	return nil
 }

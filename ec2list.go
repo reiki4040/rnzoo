@@ -1,16 +1,20 @@
 package main
 
 import (
-	"bufio"
-	"encoding/json"
+	"bytes"
 	"fmt"
 	"log"
 	"os"
+	"sort"
+	"text/tabwriter"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/codegangsta/cli"
+
+	"github.com/reiki4040/cstore"
+	//"github.com/reiki4040/peco"
 )
 
 const (
@@ -76,111 +80,162 @@ func doEc2list(c *cli.Context) {
 		log.Printf("can not create rnzoo dir: %s\n", err.Error())
 	}
 
-	ec2list(regionName, isReload)
-}
-
-func GetRnzooDir() string {
-	rnzooDir := os.Getenv(ENV_HOME) + string(os.PathSeparator) + RNZOO_DIR_NAME
-	return rnzooDir
-}
-
-func GetEC2ListCachePath(region string) string {
-	rnzooDir := GetRnzooDir()
-	return rnzooDir + string(os.PathSeparator) + "aws.instances.cache." + region
-}
-
-func CreateRnzooDir() error {
-	rnzooDir := GetRnzooDir()
-
-	if _, err := os.Stat(rnzooDir); os.IsNotExist(err) {
-		err = os.Mkdir(rnzooDir, 0700)
-		if err != nil {
-			if !os.IsExist(err) {
-				return err
-			}
-		}
+	h, err := NewRnzooCStoreManager()
+	if err != nil {
+		log.Printf("can not load EC2: %s\n", err.Error())
 	}
 
-	return nil
+	ec2list, err := h.LoadChoosableEC2List(regionName, isReload)
+	if err != nil {
+		log.Printf("can not load EC2: %s\n", err.Error())
+	}
+
+	for _, i := range ec2list {
+		fmt.Println(i.Choice())
+	}
 }
 
-func ec2list(region string, reload bool) {
-	var instances []*ec2.Instance
-	cachePath := GetEC2ListCachePath(region)
-
-	if _, err := os.Stat(cachePath); os.IsNotExist(err) || reload {
-		var err error
-		instances, err = GetInstances(region)
-		if err != nil {
-			log.Fatalf("failed get instance: %s", err.Error())
-		}
-
-		if err != nil {
-			log.Fatalf("failed get instance: %s", err.Error())
-		}
-
-		err = StoreCache(instances, cachePath)
-		if err != nil {
-			// only warn message
-			log.Printf("warn: failed store ec2 list cache: %s\n", err.Error())
-		}
-	} else {
-		var err error
-		instances, err = LoadCache(cachePath)
-		if err != nil {
-			// only warn message
-			log.Printf("warn: failed load ec2 list cache: %s, so try load from AWS.\n", err.Error())
-
-			instances, err = GetInstances(region)
-			if err != nil {
-				log.Fatalf("failed get instance: %s", err.Error())
-			}
-		}
+func NewRnzooCStoreManager() (*EC2Handler, error) {
+	dirPath := GetRnzooDir()
+	m, err := cstore.NewManager("rnzoo", dirPath)
+	if err != nil {
+		return nil, err
 	}
 
-	for _, i := range instances {
-		showLtsv(i)
-	}
+	return NewEC2Handler(m), nil
+}
+
+type ChoosableEC2 struct {
+	InstanceId string
+	Name       string
+	Status     string
+	PublicIP   string
+	PrivateIP  string
+}
+
+func (e *ChoosableEC2) Choice() string {
+	w := new(tabwriter.Writer)
+	var b bytes.Buffer
+	w.Init(&b, 18, 0, 4, ' ', 0)
+	fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s", e.InstanceId, e.Name, e.Status, e.PublicIP, e.PrivateIP)
+	w.Flush()
+	return string(b.Bytes())
+}
+
+func (e *ChoosableEC2) Value() string {
+	return e.InstanceId
+}
+
+type ChoosableEC2s []*ChoosableEC2
+
+func (e ChoosableEC2s) Len() int {
+	return len(e)
+}
+
+func (e ChoosableEC2s) Swap(i, j int) {
+	e[i], e[j] = e[j], e[i]
+}
+
+func (e ChoosableEC2s) Less(i, j int) bool {
+	return e[i].Name < e[j].Name
 }
 
 type Instances struct {
 	Instances []*ec2.Instance `json:"ec2_instances"`
 }
 
-func StoreCache(instances []*ec2.Instance, cachePath string) error {
-	cacheFile, err := os.Create(cachePath)
-	if err != nil {
-		return err
+func NewEC2Handler(m *cstore.Manager) *EC2Handler {
+	return &EC2Handler{
+		Manager: m,
 	}
-	defer cacheFile.Close()
-
-	w := bufio.NewWriter(cacheFile)
-	enc := json.NewEncoder(w)
-	//enc.Indent("", "  ")
-	toJson := Instances{Instances: instances}
-	if err := enc.Encode(toJson); err != nil {
-		return err
-	}
-
-	return nil
 }
 
-func LoadCache(cachePath string) ([]*ec2.Instance, error) {
-	cacheFile, err := os.Open(cachePath)
-	if err != nil {
+type EC2Handler struct {
+	Manager *cstore.Manager
+}
+
+func (r *EC2Handler) GetCacheStore(region string) (*cstore.CStore, error) {
+	cacheFileName := RNZOO_EC2_LIST_CACHE_PREFIX + region + ".json"
+	return r.Manager.New(cacheFileName, cstore.JSON)
+}
+
+func (r *EC2Handler) LoadChoosableEC2List(region string, reload bool) ([]*ChoosableEC2, error) {
+	var instances []*ec2.Instance
+	cacheStore, _ := r.GetCacheStore(region)
+
+	is := Instances{}
+	if cErr := cacheStore.GetWithoutValidate(&is); cErr != nil || reload {
+		var err error
+		instances, err = GetInstances(region)
+		if err != nil {
+			awsErr := fmt.Errorf("failed get instance: %s", err.Error())
+			return nil, awsErr
+		}
+
+		is = Instances{Instances: instances}
+		if cacheStore != nil {
+			err := cacheStore.SaveWithoutValidate(&is)
+			if err != nil {
+				// only warn message
+				fmt.Printf("warn: failed store ec2 list cache: %s\n", err.Error())
+			}
+		}
+	}
+
+	choices := ConvertChoosableEC2List(is.Instances)
+	if len(choices) == 0 {
+		err := fmt.Errorf("there is no running instance.")
 		return nil, err
 	}
-	defer cacheFile.Close()
 
-	r := bufio.NewReader(cacheFile)
-	dec := json.NewDecoder(r)
-	instances := Instances{}
-	err = dec.Decode(&instances)
-	if err != nil {
-		return nil, err
+	return choices, nil
+}
+
+func ConvertChoosableEC2List(instances []*ec2.Instance) []*ChoosableEC2 {
+	choosableEC2List := make([]*ChoosableEC2, 0, len(instances))
+	for _, i := range instances {
+		e := convertChoosable(i)
+		if e != nil {
+			choosableEC2List = append(choosableEC2List, e)
+		}
 	}
 
-	return instances.Instances, nil
+	sort.Sort(ChoosableEC2s(choosableEC2List))
+
+	//choices := make([]peco.Choosable, 0, len(choosableEC2List))
+	//for _, c := range choosableEC2List {
+	//	choices = append(choices, c)
+	//}
+	//return choices
+
+	return choosableEC2List
+}
+
+func convertChoosable(i *ec2.Instance) *ChoosableEC2 {
+
+	var nameTag string
+	for _, tag := range i.Tags {
+		if convertNilString(tag.Key) == "Name" {
+			nameTag = convertNilString(tag.Value)
+			break
+		}
+	}
+
+	ins := *i
+	c := &ChoosableEC2{
+		InstanceId: convertNilString(ins.InstanceId),
+		Name:       nameTag,
+		Status:     convertNilString(ins.State.Name),
+		PublicIP:   convertNilString(ins.PublicIpAddress),
+		PrivateIP:  convertNilString(ins.PrivateIpAddress),
+	}
+
+	return c
+}
+
+func GetEC2ListCachePath(region string) string {
+	rnzooDir := GetRnzooDir()
+	return rnzooDir + string(os.PathSeparator) + "aws.instances.cache." + region
 }
 
 func GetInstances(region string) ([]*ec2.Instance, error) {
@@ -203,23 +258,4 @@ func GetInstances(region string) ([]*ec2.Instance, error) {
 	}
 
 	return instances, nil
-}
-
-func showLtsv(i *ec2.Instance) {
-
-	var nameTag string
-	for _, tag := range i.Tags {
-		if convertNilString(tag.Key) == "Name" {
-			nameTag = convertNilString(tag.Value)
-			break
-		}
-	}
-
-	//ins := *i
-	fmt.Printf("instance_id:%s\tname:%s\tstate:%s\tpublic_ip:%s\tprivate_ip:%s\n",
-		convertNilString(i.InstanceId),
-		nameTag,
-		convertNilString(i.State.Name),
-		convertNilString(i.PublicIpAddress),
-		convertNilString(i.PrivateIpAddress))
 }

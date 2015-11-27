@@ -1,109 +1,22 @@
-package main
+package ec2
 
 import (
 	"bytes"
 	"fmt"
-	"log"
-	"os"
 	"sort"
 	"text/tabwriter"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/codegangsta/cli"
 
 	"github.com/reiki4040/cstore"
 	"github.com/reiki4040/peco"
 )
 
 const (
-	EC2LIST_DESC = `
-     you can set default region by AWS_REGION environment variable.
-
-         export AWS_REGION=ap-northeast-1
-
-     this command make cache file that ec2 info. (default ~/.rnzoo/instance.cache.REGION)
-     second time, you can get ec2 info without access to AWS.
-
-     if you updated ec2(create new instance, stop, start and etc...), need to update cache with -f/--force option.
-
-         ec2list -r ap-northeast-1 -f`
-
-	EC2LIST_USAGE = `show your ec2 infomations with LTSV format.
-
-     show your ec2 info at ap-northeast-1
-
-       rnzoo ec2list -r ap-northeast-1
-
-       instance_id:i-11111111	name:Name tags Value1	state:stopped	public_ip:X.X.X.X	private_ip:Y.Y.Y.Y	instance_type:t2.micro
-       instance_id:i-22222222	name:Name tags Value2	state:running	public_ip:X.X.X.x	private_ip:Y.Y.Y.y	instance_type:m3.large
-       ...
-`
-
-	EC2LIST_FORCE_USAGE  = `reload ec2 (force connect to AWS)`
-	EC2LIST_REGION_USAGE = `specify AWS region name.`
+	EC2_LIST_CACHE_PREFIX = "aws.instances.cache."
 )
-
-var commandEc2list = cli.Command{
-	Name:        "ec2list",
-	ShortName:   "ls",
-	Usage:       EC2LIST_USAGE,
-	Description: EC2LIST_DESC,
-	Action:      doEc2list,
-	Flags: []cli.Flag{
-		cli.BoolFlag{
-			Name:  OPT_FORCE + ", f",
-			Usage: EC2LIST_FORCE_USAGE,
-		},
-		cli.StringFlag{
-			Name:  OPT_REGION + ", r",
-			Usage: EC2LIST_REGION_USAGE,
-		},
-	},
-}
-
-func doEc2list(c *cli.Context) {
-	isReload := c.Bool(OPT_FORCE)
-
-	regionName := c.String(OPT_REGION)
-	if regionName == "" {
-		regionName = os.Getenv(ENV_AWS_REGION)
-	}
-
-	if regionName == "" {
-		log.Fatalf("please set region.")
-	}
-
-	err := CreateRnzooDir()
-	if err != nil {
-		log.Printf("can not create rnzoo dir: %s\n", err.Error())
-	}
-
-	h, err := NewRnzooCStoreManager()
-	if err != nil {
-		log.Printf("can not load EC2: %s\n", err.Error())
-	}
-
-	ec2list, err := h.LoadChoosableEC2List(regionName, isReload)
-	if err != nil {
-		log.Printf("can not load EC2: %s\n", err.Error())
-	}
-
-	for _, i := range ec2list {
-		fmt.Println(i.Choice())
-	}
-}
-
-func NewRnzooCStoreManager() (*EC2Handler, error) {
-	dirPath := GetRnzooDir()
-	m, err := cstore.NewManager("rnzoo", dirPath)
-	if err != nil {
-		return nil, err
-	}
-
-	return NewEC2Handler(m), nil
-}
 
 func ConvertChoosableList(ec2List []*ChoosableEC2) []peco.Choosable {
 	choices := make([]peco.Choosable, 0, len(ec2List))
@@ -162,8 +75,31 @@ type EC2Handler struct {
 	Manager *cstore.Manager
 }
 
+func (h *EC2Handler) ChooseEC2(region string, reload bool) ([]*string, error) {
+	ec2list, err := h.LoadChoosableEC2List(region, reload)
+	if err != nil {
+		return nil, err
+	}
+
+	choices := ConvertChoosableList(ec2list)
+
+	chosens, err := peco.Choose("EC2", "select instances", "", choices)
+	if err != nil {
+		return nil, err
+	}
+
+	ids := make([]*string, 0, len(chosens))
+	for _, c := range chosens {
+		if ec2, ok := c.(*ChoosableEC2); ok {
+			ids = append(ids, aws.String(ec2.InstanceId))
+		}
+	}
+
+	return ids, nil
+}
+
 func (r *EC2Handler) GetCacheStore(region string) (*cstore.CStore, error) {
-	cacheFileName := RNZOO_EC2_LIST_CACHE_PREFIX + region + ".json"
+	cacheFileName := EC2_LIST_CACHE_PREFIX + region + ".json"
 	return r.Manager.New(cacheFileName, cstore.JSON)
 }
 
@@ -234,11 +170,6 @@ func convertChoosable(i *ec2.Instance) *ChoosableEC2 {
 	return c
 }
 
-func GetEC2ListCachePath(region string) string {
-	rnzooDir := GetRnzooDir()
-	return rnzooDir + string(os.PathSeparator) + "aws.instances.cache." + region
-}
-
 func GetInstances(region string) ([]*ec2.Instance, error) {
 	cli := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
 
@@ -259,4 +190,12 @@ func GetInstances(region string) ([]*ec2.Instance, error) {
 	}
 
 	return instances, nil
+}
+
+func convertNilString(s *string) string {
+	if s == nil {
+		return ""
+	} else {
+		return *s
+	}
 }

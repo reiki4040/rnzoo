@@ -13,8 +13,7 @@ const (
 	ENV_AWS_REGION = "AWS_REGION"
 	ENV_HOME       = "HOME"
 
-	RNZOO_DIR_NAME              = ".rnzoo"
-	RNZOO_EC2_LIST_CACHE_PREFIX = "instances.cache."
+	RNZOO_DIR_NAME = ".rnzoo"
 
 	OPT_SILENT  = "silent"
 	OPT_VERBOSE = "verbose"

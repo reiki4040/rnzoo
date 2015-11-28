@@ -20,6 +20,7 @@ var CliFlags = []cli.Flag{
 }
 
 var Commands = []cli.Command{
+	commandInit,
 	commandEc2start,
 	commandEc2stop,
 	commandEc2list,

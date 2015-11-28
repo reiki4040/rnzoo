@@ -41,16 +41,17 @@ export AWS_SECRET_ACCESS_KEY=
 
 ### set default AWS region
 
-* Environment variable (`~/.bashrc`, `~/.bash_profile`, etc...)
+use init sub command. it shows AWS regions and store to config file (`~/.rnzoo/config`)
 
 ```
-export AWS_REGION=ap-northeast-1
+rnzoo init
 ```
 
 ## Sub Command
 
 | sub command | description |
 |-------------|-------------|
+| init | start rnzoo config wizard |
 | ec2start | start ec2 instances (it already created, not launch) |
 | ec2stop | stop ec2 instances |
 | ec2list | listing ec2 instances |

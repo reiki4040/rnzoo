@@ -241,6 +241,177 @@ func doEc2stop(c *cli.Context) {
 	log.Printf("finished stopping.")
 }
 
+var commandAttachEIP = cli.Command{
+	Name:        "attach-eip",
+	Usage:       "allocate new EIP(allow reassociate) and associate it to the instance.",
+	Description: `allocate new EIP(allow reassociate) and associate it to the instance.`,
+	Action:      doAttachEIP,
+	Flags: []cli.Flag{
+		cli.StringFlag{
+			Name:  OPT_INSTANCE_ID,
+			Usage: "specify instance id.",
+		},
+		cli.BoolFlag{
+			Name:  OPT_REUSE,
+			Usage: "if there is EIP that has not associated, associate it. if not, allocate new address.",
+		},
+	},
+}
+
+var commandDetachEIP = cli.Command{
+	Name:        "detach-eip",
+	Usage:       "disassociate EIP and release it.",
+	Description: `disassociate EIP and release it.`,
+	Action:      doDetachEIP,
+	Flags: []cli.Flag{
+		cli.StringFlag{
+			Name:  OPT_INSTANCE_ID,
+			Usage: "specify instance id.",
+		},
+		cli.BoolFlag{
+			Name:  OPT_WITHOUT_RELEASE,
+			Usage: "does not release disassociated the address.",
+		},
+	},
+}
+
+// allocate new EIP and associate.
+func doAttachEIP(c *cli.Context) {
+	prepare(c)
+
+	// load config
+	config, err := GetDefaultConfig()
+	if err != nil {
+		log.Printf("can not load rnzoo config: %s\n", err.Error())
+	}
+	region := config.AWSRegion
+
+	instanceId := c.String(OPT_INSTANCE_ID)
+	if instanceId == "" {
+		h, err := NewRnzooCStoreManager()
+		if err != nil {
+			log.Printf("can not load EC2: %s\n", err.Error())
+		}
+
+		ids, err := h.ChooseEC2(region, true)
+		if err != nil {
+			log.Fatalf("error during selecting: %s", err.Error())
+			return
+		}
+
+		// one instance
+		if len(ids) >= 1 {
+			instanceId = *ids[0]
+		}
+	} else {
+		err := validateInstanceId(instanceId)
+		if err != nil {
+			log.Fatalf("invalid instance id format: %s", err.Error())
+		}
+	}
+
+	reuseEIP := c.Bool(OPT_REUSE)
+
+	cli := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
+
+	var allocId string
+	var ip string
+	if reuseEIP {
+		address, err := myec2.GetNotAssociateEIP(cli)
+		if err != nil {
+			log.Printf("failed no associate address so allocate new address...")
+		}
+
+		// if exists EIP
+		if address != nil {
+			allocId = convertNilString(address.AllocationId)
+			ip = convertNilString(address.PublicIp)
+		}
+	}
+
+	if allocId == "" {
+		aid, pip, err := myec2.AllocateEIP(cli)
+		if err != nil {
+			log.Fatalf("failed allocation address:%s", err.Error())
+		}
+		allocId = convertNilString(aid)
+		ip = convertNilString(pip)
+
+		log.Printf("allocated allocation_id:%s\tpublic_ip:%s", allocId, ip)
+	}
+
+	associationId, err := myec2.AssociateEIP(cli, allocId, instanceId)
+	if err != nil {
+		log.Fatalf("failed associate address:%s", err.Error())
+	}
+
+	log.Printf("associated association_id:%s\tpublic_ip:%s\tinstance_id:%s", convertNilString(associationId), ip, instanceId)
+}
+
+// desassociate EIP and release.
+func doDetachEIP(c *cli.Context) {
+	prepare(c)
+
+	withoutRelease := c.Bool(OPT_WITHOUT_RELEASE)
+
+	// load config
+	config, err := GetDefaultConfig()
+	if err != nil {
+		log.Printf("can not load rnzoo config: %s\n", err.Error())
+	}
+
+	region := config.AWSRegion
+
+	instanceId := c.String(OPT_INSTANCE_ID)
+	if instanceId == "" {
+		h, err := NewRnzooCStoreManager()
+		if err != nil {
+			log.Printf("can not load EC2: %s\n", err.Error())
+		}
+
+		ids, err := h.ChooseEC2(region, true)
+		if err != nil {
+			log.Fatalf("error during selecting: %s", err.Error())
+			return
+		}
+
+		// one instance
+		if len(ids) >= 1 {
+			instanceId = *ids[0]
+		}
+	} else {
+		err := validateInstanceId(instanceId)
+		if err != nil {
+			log.Fatalf("invalid instance id format: %s", err.Error())
+		}
+	}
+
+	cli := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
+	address, err := myec2.GetEIPFromInstance(cli, instanceId)
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+
+	associationId := convertNilString(address.AssociationId)
+	ip := convertNilString(address.PublicIp)
+	iid := convertNilString(address.InstanceId)
+
+	err = myec2.DisassociateEIP(cli, convertNilString(address.AssociationId))
+	if err != nil {
+		log.Fatalf("failed disassociate address:%s", err.Error())
+	}
+
+	log.Printf("disassociated assciation_id:%s\tpublic_ip:%s\tinstance_id:%s", associationId, ip, iid)
+
+	if !withoutRelease {
+		err := myec2.ReleaseEIP(cli, convertNilString(address.AllocationId))
+		if err != nil {
+			log.Fatalf("failed release address:%s", err.Error())
+		}
+		log.Printf("released allocation_id:%s\tpublic_ip:%s", convertNilString(address.AllocationId), ip)
+	}
+}
+
 func NewCStoreManager() (*cstore.Manager, error) {
 	dirPath := GetRnzooDir()
 	return cstore.NewManager("rnzoo", dirPath)

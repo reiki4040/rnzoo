@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -41,6 +40,14 @@ const (
 	EC2LIST_FORCE_USAGE  = `reload ec2 (force connect to AWS)`
 	EC2LIST_REGION_USAGE = `specify AWS region name.`
 )
+
+var commandInit = cli.Command{
+	Name:        "init",
+	Usage:       "initialize settings",
+	Description: `start initialize settings wizard`,
+	Action:      doInit,
+	Flags:       []cli.Flag{},
+}
 
 var commandEc2list = cli.Command{
 	Name:        "ec2list",
@@ -89,12 +96,18 @@ var commandEc2stop = cli.Command{
 func doEc2list(c *cli.Context) {
 	isReload := c.Bool(OPT_FORCE)
 
-	regionName := c.String(OPT_REGION)
-	if regionName == "" {
-		regionName = os.Getenv(ENV_AWS_REGION)
+	region := c.String(OPT_REGION)
+	if region == "" {
+		// load config
+		c, err := GetDefaultConfig()
+		if err != nil {
+			log.Printf("can not load rnzoo config: %s\n", err.Error())
+		}
+
+		region = c.AWSRegion
 	}
 
-	if regionName == "" {
+	if region == "" {
 		log.Fatalf("please set region.")
 	}
 
@@ -108,7 +121,7 @@ func doEc2list(c *cli.Context) {
 		log.Printf("can not load EC2: %s\n", err.Error())
 	}
 
-	ec2list, err := h.LoadChoosableEC2List(regionName, isReload)
+	ec2list, err := h.LoadChoosableEC2List(region, isReload)
 	if err != nil {
 		log.Printf("can not load EC2: %s\n", err.Error())
 	}
@@ -123,12 +136,13 @@ func doEc2start(c *cli.Context) {
 
 	region := c.String(OPT_REGION)
 	if region == "" {
-		defaultRegion, err := GetDefaultRegion()
+		// load config
+		c, err := GetDefaultConfig()
 		if err != nil {
-			log.Fatalf(err.Error())
+			log.Printf("can not load rnzoo config: %s\n", err.Error())
 		}
 
-		region = defaultRegion
+		region = c.AWSRegion
 	}
 
 	instanceId := c.String(OPT_INSTANCE_ID)
@@ -177,11 +191,13 @@ func doEc2stop(c *cli.Context) {
 
 	region := c.String(OPT_REGION)
 	if region == "" {
-		defaultRegion, err := GetDefaultRegion()
+		// load config
+		c, err := GetDefaultConfig()
 		if err != nil {
-			log.Fatalf(err.Error())
+			log.Printf("can not load rnzoo config: %s\n", err.Error())
 		}
-		region = defaultRegion
+
+		region = c.AWSRegion
 	}
 
 	instanceId := c.String(OPT_INSTANCE_ID)
@@ -225,23 +241,16 @@ func doEc2stop(c *cli.Context) {
 	log.Printf("finished stopping.")
 }
 
-func NewRnzooCStoreManager() (*myec2.EC2Handler, error) {
+func NewCStoreManager() (*cstore.Manager, error) {
 	dirPath := GetRnzooDir()
-	m, err := cstore.NewManager("rnzoo", dirPath)
+	return cstore.NewManager("rnzoo", dirPath)
+}
+
+func NewRnzooCStoreManager() (*myec2.EC2Handler, error) {
+	m, err := NewCStoreManager()
 	if err != nil {
 		return nil, err
 	}
 
 	return myec2.NewEC2Handler(m), nil
-}
-
-func GetDefaultRegion() (string, error) {
-	region := os.Getenv(ENV_AWS_REGION)
-	if region == "" {
-		err := fmt.Errorf("does not specify region.")
-		return "", err
-
-	}
-
-	return region, nil
 }

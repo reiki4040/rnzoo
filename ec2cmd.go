@@ -20,21 +20,21 @@ const (
 
          export AWS_REGION=ap-northeast-1
 
-     this command make cache file that ec2 info. (default ~/.rnzoo/instance.cache.REGION)
+     this command make cache file that ec2 info. (default ~/.rnzoo/aws.instance.cache.REGION)
      second time, you can get ec2 info without access to AWS.
 
      if you updated ec2(create new instance, stop, start and etc...), need to update cache with -f/--force option.
 
          ec2list -r ap-northeast-1 -f`
 
-	EC2LIST_USAGE = `show your ec2 infomations with LTSV format.
+	EC2LIST_USAGE = `show your ec2 instances.
 
      show your ec2 info at ap-northeast-1
 
        rnzoo ec2list -r ap-northeast-1
 
-       instance_id:i-11111111	name:Name tags Value1	state:stopped	public_ip:X.X.X.X	private_ip:Y.Y.Y.Y	instance_type:t2.micro
-       instance_id:i-22222222	name:Name tags Value2	state:running	public_ip:X.X.X.x	private_ip:Y.Y.Y.y	instance_type:m3.large
+       i-11111111	Name tag Web server1	stopped	t2.micro	54.X.X.X	10.Y.Y.Y
+       i-22222222	Name tag Web server2	running	m3.large	52.X.X.x	10.Y.Y.y
        ...
 `
 

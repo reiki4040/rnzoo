@@ -27,18 +27,19 @@ func ConvertChoosableList(ec2List []*ChoosableEC2) []peco.Choosable {
 }
 
 type ChoosableEC2 struct {
-	InstanceId string
-	Name       string
-	Status     string
-	PublicIP   string
-	PrivateIP  string
+	InstanceId   string
+	Name         string
+	Status       string
+	InstanceType string
+	PublicIP     string
+	PrivateIP    string
 }
 
 func (e *ChoosableEC2) Choice() string {
 	w := new(tabwriter.Writer)
 	var b bytes.Buffer
 	w.Init(&b, 18, 0, 4, ' ', 0)
-	fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s", e.InstanceId, e.Name, e.Status, e.PublicIP, e.PrivateIP)
+	fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s", e.InstanceId, e.Name, e.Status, e.InstanceType, e.PublicIP, e.PrivateIP)
 	w.Flush()
 	return string(b.Bytes())
 }
@@ -160,11 +161,12 @@ func convertChoosable(i *ec2.Instance) *ChoosableEC2 {
 
 	ins := *i
 	c := &ChoosableEC2{
-		InstanceId: convertNilString(ins.InstanceId),
-		Name:       nameTag,
-		Status:     convertNilString(ins.State.Name),
-		PublicIP:   convertNilString(ins.PublicIpAddress),
-		PrivateIP:  convertNilString(ins.PrivateIpAddress),
+		InstanceId:   convertNilString(ins.InstanceId),
+		Name:         nameTag,
+		Status:       convertNilString(ins.State.Name),
+		InstanceType: convertNilString(ins.InstanceType),
+		PublicIP:     convertNilString(ins.PublicIpAddress),
+		PrivateIP:    convertNilString(ins.PrivateIpAddress),
 	}
 
 	return c

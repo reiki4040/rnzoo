@@ -2,6 +2,7 @@ package ec2
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"sort"
 	"text/tabwriter"
@@ -192,6 +193,89 @@ func GetInstances(region string) ([]*ec2.Instance, error) {
 	}
 
 	return instances, nil
+}
+
+func AssociateEIP(cli *ec2.EC2, eipAllocId, instanceId string) (*string, error) {
+	params := &ec2.AssociateAddressInput{
+		AllocationId:       aws.String(eipAllocId),
+		AllowReassociation: aws.Bool(true),
+		InstanceId:         aws.String(instanceId),
+	}
+	resp, err := cli.AssociateAddress(params)
+
+	return resp.AssociationId, err
+}
+
+func AllocateEIP(cli *ec2.EC2) (*string, *string, error) {
+	params := &ec2.AllocateAddressInput{
+		Domain: aws.String("vpc"),
+	}
+	resp, err := cli.AllocateAddress(params)
+	return resp.AllocationId, resp.PublicIp, err
+}
+
+func DisassociateEIP(cli *ec2.EC2, allocId string) error {
+	params := &ec2.DisassociateAddressInput{
+		AssociationId: aws.String(allocId),
+	}
+
+	// resp is empty struct
+	_, err := cli.DisassociateAddress(params)
+
+	return err
+}
+
+func ReleaseEIP(cli *ec2.EC2, allocId string) error {
+	params := &ec2.ReleaseAddressInput{
+		AllocationId: aws.String(allocId),
+	}
+
+	// resp is empty struct
+	_, err := cli.ReleaseAddress(params)
+	return err
+}
+
+func GetEIPFromInstance(cli *ec2.EC2, instanceId string) (*ec2.Address, error) {
+	params := &ec2.DescribeAddressesInput{
+		Filters: []*ec2.Filter{
+			&ec2.Filter{
+				Name: aws.String("instance-id"),
+				Values: []*string{
+					aws.String(instanceId),
+				},
+			},
+		},
+	}
+	resp, err := cli.DescribeAddresses(params)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(resp.Addresses) != 1 {
+		return nil, errors.New("this instance has not EIP.")
+	}
+
+	address := resp.Addresses[0]
+	return address, nil
+}
+
+func GetNotAssociateEIP(cli *ec2.EC2) (*ec2.Address, error) {
+	params := &ec2.DescribeAddressesInput{}
+
+	resp, err := cli.DescribeAddresses(params)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(resp.Addresses) >= 1 {
+		for _, address := range resp.Addresses {
+			if address.InstanceId == nil {
+				return address, nil
+			}
+		}
+	}
+
+	return nil, nil
 }
 
 func convertNilString(s *string) string {

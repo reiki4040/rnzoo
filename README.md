@@ -55,6 +55,8 @@ rnzoo init
 | ec2start | start ec2 instances (it already created, not launch) |
 | ec2stop | stop ec2 instances |
 | ec2list | listing ec2 instances |
+| attach-eip | allocate new EIP(allow reassociate) and associate it to the instance |
+| detach-eip | disassociate EIP and release it |
 
 ## Copyright and LICENSE
 

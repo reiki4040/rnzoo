@@ -15,6 +15,14 @@ import (
 
 const (
 	EC2LIST_DESC = `
+     show your ec2 info at ap-northeast-1
+
+       rnzoo ec2list -r ap-northeast-1
+
+       i-11111111	Name tag Web server1	stopped	t2.micro	54.X.X.X	10.Y.Y.Y
+       i-22222222	Name tag Web server2	running	m3.large	52.X.X.x	10.Y.Y.y
+       ...
+
      you can set default region by AWS_REGION environment variable.
 
          export AWS_REGION=ap-northeast-1
@@ -26,16 +34,7 @@ const (
 
          ec2list -r ap-northeast-1 -f`
 
-	EC2LIST_USAGE = `show your ec2 instances.
-
-     show your ec2 info at ap-northeast-1
-
-       rnzoo ec2list -r ap-northeast-1
-
-       i-11111111	Name tag Web server1	stopped	t2.micro	54.X.X.X	10.Y.Y.Y
-       i-22222222	Name tag Web server2	running	m3.large	52.X.X.x	10.Y.Y.y
-       ...
-`
+	EC2LIST_USAGE = `show your ec2 instances.`
 
 	EC2LIST_FORCE_USAGE  = `reload ec2 (force connect to AWS)`
 	EC2LIST_REGION_USAGE = `specify AWS region name.`

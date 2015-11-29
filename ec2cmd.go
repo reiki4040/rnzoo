@@ -153,7 +153,7 @@ func doEc2start(c *cli.Context) {
 			log.Printf("can not load EC2: %s\n", err.Error())
 		}
 
-		ids, err = h.ChooseEC2(region, false)
+		ids, err = h.ChooseEC2(region, true)
 		if err != nil {
 			log.Fatalf("error during selecting: %s", err.Error())
 			return
@@ -208,7 +208,7 @@ func doEc2stop(c *cli.Context) {
 			log.Printf("can not load EC2: %s\n", err.Error())
 		}
 
-		ids, err = h.ChooseEC2(region, false)
+		ids, err = h.ChooseEC2(region, true)
 		if err != nil {
 			log.Fatalf("error during selecting: %s", err.Error())
 			return

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -254,6 +255,10 @@ var commandAttachEIP = cli.Command{
 			Name:  OPT_REUSE,
 			Usage: "if there is EIP that has not associated, associate it. if not, allocate new address.",
 		},
+		cli.BoolFlag{
+			Name:  OPT_MOVE,
+			Usage: "move EIP to the instance from the other instance.",
+		},
 	},
 }
 
@@ -274,6 +279,45 @@ var commandDetachEIP = cli.Command{
 	},
 }
 
+func doMoveEIP(region string) {
+	// EIP listing
+	allocIds, err := myec2.ChooseEIP(region)
+
+	if len(allocIds) == 0 {
+		log.Fatalf("error during selecting to EIP: %s", err.Error())
+	}
+
+	// to instance
+	h, err := NewRnzooCStoreManager()
+	if err != nil {
+		log.Printf("can not load EC2: %s\n", err.Error())
+	}
+
+	ids, err := h.ChooseEC2(region, true)
+	if err != nil {
+		log.Fatalf("error during selecting: %s", err.Error())
+		return
+	}
+
+	// one instance
+	instanceId := ""
+	if len(ids) >= 1 {
+		instanceId = *ids[0]
+	} else {
+		log.Fatalf("error during selecting to instance: %s", err.Error())
+	}
+
+	// moving
+	cli := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
+
+	assocId, err := myec2.AssociateEIP(cli, allocIds[0].AllocationId, instanceId)
+	if err != nil {
+		log.Fatalf("error during moving EIP: %s", err.Error())
+	}
+
+	log.Printf("associated association_id:%s\tpublic_ip:%s\tinstance_id:%s", convertNilString(assocId), "EIP", instanceId)
+}
+
 // allocate new EIP and associate.
 func doAttachEIP(c *cli.Context) {
 	prepare(c)
@@ -284,6 +328,12 @@ func doAttachEIP(c *cli.Context) {
 		log.Printf("can not load rnzoo config: %s\n", err.Error())
 	}
 	region := config.AWSRegion
+
+	moving := c.Bool(OPT_MOVE)
+	if moving {
+		doMoveEIP(region)
+		os.Exit(0)
+	}
 
 	instanceId := c.String(OPT_INSTANCE_ID)
 	if instanceId == "" {

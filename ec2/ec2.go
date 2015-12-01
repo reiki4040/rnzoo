@@ -195,6 +195,90 @@ func GetInstances(region string) ([]*ec2.Instance, error) {
 	return instances, nil
 }
 
+type ChoosableEIP struct {
+	AllocationId string
+	AssociateId  string
+	PublicIP     string
+	InstanceId   string
+	Name         string
+}
+
+func (c *ChoosableEIP) Choice() string {
+	return fmt.Sprintf("%s %s", c.PublicIP, c.Name)
+}
+
+func (c *ChoosableEIP) Value() string {
+	return c.AllocationId
+}
+
+func ChooseEIP(region string) ([]*ChoosableEIP, error) {
+	EIPs, err := LoadEIPList(region)
+	if err != nil {
+		return nil, err
+	}
+
+	choices := ConvertChoosableEIPList(EIPs)
+
+	chosens, err := peco.Choose("EIP", "select EIP", "", choices)
+	if err != nil {
+		return nil, err
+	}
+
+	ids := make([]*ChoosableEIP, 0, len(chosens))
+	for _, c := range chosens {
+		if eip, ok := c.(*ChoosableEIP); ok {
+			ids = append(ids, eip)
+		}
+	}
+
+	return ids, nil
+}
+
+func ConvertChoosableEIPList(eipList []*ChoosableEIP) []peco.Choosable {
+	choices := make([]peco.Choosable, 0, len(eipList))
+	for _, e := range eipList {
+		choices = append(choices, e)
+	}
+	return choices
+}
+
+func LoadEIPList(region string) ([]*ChoosableEIP, error) {
+	cli := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
+	resp, err := cli.DescribeAddresses(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	instances, err := GetInstances(region)
+	if err != nil {
+		return nil, err
+	}
+
+	iMap := make(map[string]string, 0)
+	for _, i := range instances {
+		cEC2 := convertChoosable(i)
+		if cEC2.InstanceId != "" {
+			iMap[cEC2.InstanceId] = cEC2.Name
+		}
+	}
+
+	cEIPs := make([]*ChoosableEIP, 0)
+	for _, addr := range resp.Addresses {
+		name, _ := iMap[convertNilString(addr.InstanceId)]
+		e := &ChoosableEIP{
+			AllocationId: convertNilString(addr.AllocationId),
+			AssociateId:  convertNilString(addr.AssociationId),
+			PublicIP:     convertNilString(addr.PublicIp),
+			InstanceId:   convertNilString(addr.InstanceId),
+			Name:         name,
+		}
+
+		cEIPs = append(cEIPs, e)
+	}
+
+	return cEIPs, nil
+}
+
 func AssociateEIP(cli *ec2.EC2, eipAllocId, instanceId string) (*string, error) {
 	params := &ec2.AssociateAddressInput{
 		AllocationId:       aws.String(eipAllocId),

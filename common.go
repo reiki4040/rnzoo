@@ -29,6 +29,7 @@ const (
 	OPT_DISASSOCIATE    = "disassociate"
 	OPT_WITHOUT_RELEASE = "without-release"
 	OPT_REUSE           = "reuse"
+	OPT_MOVE            = "move"
 )
 
 var silent bool

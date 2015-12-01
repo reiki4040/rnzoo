@@ -17,6 +17,10 @@ import (
 
 const (
 	EC2_LIST_CACHE_PREFIX = "aws.instances.cache."
+
+	EC2_STATE_ANY     = ""
+	EC2_STATE_RUNNING = "running"
+	EC2_STATE_STOPPED = "stopped"
 )
 
 func ConvertChoosableList(ec2List []*ChoosableEC2) []peco.Choosable {
@@ -77,8 +81,8 @@ type EC2Handler struct {
 	Manager *cstore.Manager
 }
 
-func (h *EC2Handler) ChooseEC2(region string, reload bool) ([]*string, error) {
-	ec2list, err := h.LoadChoosableEC2List(region, reload)
+func (h *EC2Handler) ChooseEC2(region, state string, reload bool) ([]*string, error) {
+	ec2list, err := h.LoadChoosableEC2List(region, state, reload)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +109,7 @@ func (r *EC2Handler) GetCacheStore(region string) (*cstore.CStore, error) {
 	return r.Manager.New(cacheFileName, cstore.JSON)
 }
 
-func (r *EC2Handler) LoadChoosableEC2List(region string, reload bool) ([]*ChoosableEC2, error) {
+func (r *EC2Handler) LoadChoosableEC2List(region, state string, reload bool) ([]*ChoosableEC2, error) {
 	var instances []*ec2.Instance
 	cacheStore, _ := r.GetCacheStore(region)
 
@@ -128,20 +132,26 @@ func (r *EC2Handler) LoadChoosableEC2List(region string, reload bool) ([]*Choosa
 		}
 	}
 
-	choices := ConvertChoosableEC2List(is.Instances)
+	choices := ConvertChoosableEC2List(is.Instances, state)
 	if len(choices) == 0 {
-		err := fmt.Errorf("there is no running instance.")
+		err := fmt.Errorf("there is no instance.")
 		return nil, err
 	}
 
 	return choices, nil
 }
 
-func ConvertChoosableEC2List(instances []*ec2.Instance) []*ChoosableEC2 {
+func ConvertChoosableEC2List(instances []*ec2.Instance, state string) []*ChoosableEC2 {
 	choosableEC2List := make([]*ChoosableEC2, 0, len(instances))
 	for _, i := range instances {
 		e := convertChoosable(i)
 		if e != nil {
+			if state != EC2_STATE_ANY {
+				if e.Status != state {
+					continue
+				}
+			}
+
 			choosableEC2List = append(choosableEC2List, e)
 		}
 	}

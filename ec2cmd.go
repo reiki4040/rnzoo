@@ -121,7 +121,7 @@ func doEc2list(c *cli.Context) {
 		log.Printf("can not load EC2: %s\n", err.Error())
 	}
 
-	ec2list, err := h.LoadChoosableEC2List(region, isReload)
+	ec2list, err := h.LoadChoosableEC2List(region, myec2.EC2_STATE_ANY, isReload)
 	if err != nil {
 		log.Printf("can not load EC2: %s\n", err.Error())
 	}
@@ -154,7 +154,7 @@ func doEc2start(c *cli.Context) {
 			log.Printf("can not load EC2: %s\n", err.Error())
 		}
 
-		ids, err = h.ChooseEC2(region, true)
+		ids, err = h.ChooseEC2(region, myec2.EC2_STATE_STOPPED, true)
 		if err != nil {
 			log.Fatalf("error during selecting: %s", err.Error())
 			return
@@ -209,7 +209,7 @@ func doEc2stop(c *cli.Context) {
 			log.Printf("can not load EC2: %s\n", err.Error())
 		}
 
-		ids, err = h.ChooseEC2(region, true)
+		ids, err = h.ChooseEC2(region, myec2.EC2_STATE_RUNNING, true)
 		if err != nil {
 			log.Fatalf("error during selecting: %s", err.Error())
 			return
@@ -293,7 +293,7 @@ func doMoveEIP(region string) {
 		log.Printf("can not load EC2: %s\n", err.Error())
 	}
 
-	ids, err := h.ChooseEC2(region, true)
+	ids, err := h.ChooseEC2(region, myec2.EC2_STATE_ANY, true)
 	if err != nil {
 		log.Fatalf("error during selecting: %s", err.Error())
 		return
@@ -342,7 +342,7 @@ func doAttachEIP(c *cli.Context) {
 			log.Printf("can not load EC2: %s\n", err.Error())
 		}
 
-		ids, err := h.ChooseEC2(region, true)
+		ids, err := h.ChooseEC2(region, myec2.EC2_STATE_ANY, true)
 		if err != nil {
 			log.Fatalf("error during selecting: %s", err.Error())
 			return
@@ -418,7 +418,7 @@ func doDetachEIP(c *cli.Context) {
 			log.Printf("can not load EC2: %s\n", err.Error())
 		}
 
-		ids, err := h.ChooseEC2(region, true)
+		ids, err := h.ChooseEC2(region, myec2.EC2_STATE_ANY, true)
 		if err != nil {
 			log.Fatalf("error during selecting: %s", err.Error())
 			return

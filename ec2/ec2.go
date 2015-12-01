@@ -146,7 +146,7 @@ func ConvertChoosableEC2List(instances []*ec2.Instance, state string) []*Choosab
 	for _, i := range instances {
 		e := convertChoosable(i)
 		if e != nil {
-			if state != "" {
+			if state != EC2_STATE_ANY {
 				if e.Status != state {
 					continue
 				}

@@ -1,9 +1,13 @@
 rnzoo
 ====
 
-rnzoo is useful cli to use ec2.
+[![GitHub release](http://img.shields.io/github/release/reiki4040/rnzoo.svg?style=flat-square)][release]
+[![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)][license]
 
-rnzoo has been refactor...
+[release]: https://github.com/reiki4040/rnzoo/releases
+[license]: https://github.com/reiki4040/rnzoo/blob/master/LICENSE
+
+rnzoo is useful cli to use ec2.
 
 ## How to install and settings
 

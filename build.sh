@@ -1,5 +1,5 @@
 #!/bin/sh
-version=0.3.1
+version=0.3.2
 os="darwin"
 arch="amd64"
 

@@ -18,6 +18,7 @@ const (
 	OPT_SILENT  = "silent"
 	OPT_VERBOSE = "verbose"
 	OPT_REGION  = "region"
+	OPT_TSV     = "tsv"
 
 	OPT_INSTANCE_ID = "instance-id"
 	OPT_EIP_ID      = "eip-id"

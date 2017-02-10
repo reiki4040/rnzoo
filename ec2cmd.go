@@ -39,6 +39,7 @@ const (
 
 	EC2LIST_FORCE_USAGE  = `reload ec2 (force connect to AWS)`
 	EC2LIST_REGION_USAGE = `specify AWS region name.`
+	EC2LIST_TSV          = `output with tab separate format (TSV)`
 )
 
 var commandInit = cli.Command{
@@ -63,6 +64,10 @@ var commandEc2list = cli.Command{
 		cli.StringFlag{
 			Name:  OPT_REGION + ", r",
 			Usage: EC2LIST_REGION_USAGE,
+		},
+		cli.BoolFlag{
+			Name:  OPT_TSV + ", t",
+			Usage: EC2LIST_TSV,
 		},
 	},
 }
@@ -127,7 +132,11 @@ func doEc2list(c *cli.Context) {
 	}
 
 	for _, i := range ec2list {
-		fmt.Println(i.Choice())
+		if c.Bool(OPT_TSV) {
+			fmt.Println(i)
+		} else {
+			fmt.Println(i.Choice())
+		}
 	}
 }
 

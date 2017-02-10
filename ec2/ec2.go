@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"text/tabwriter"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -51,6 +52,11 @@ func (e *ChoosableEC2) Choice() string {
 
 func (e *ChoosableEC2) Value() string {
 	return e.InstanceId
+}
+
+func (e *ChoosableEC2) String() string {
+	items := []string{e.InstanceId, e.Name, e.Status, e.InstanceType, e.PublicIP, e.PrivateIP}
+	return strings.Join(items, "\t")
 }
 
 type ChoosableEC2s []*ChoosableEC2

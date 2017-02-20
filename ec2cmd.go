@@ -118,6 +118,10 @@ var commandEc2type = cli.Command{
 			Name:  OPT_I_TYPE + ", t",
 			Usage: "specify new instance type.",
 		},
+		cli.BoolFlag{
+			Name:  OPT_START,
+			Usage: "start the instance after modifying type.",
+		},
 	},
 }
 
@@ -196,13 +200,7 @@ func doEc2start(c *cli.Context) {
 		ids = []*string{aws.String(instanceId)}
 	}
 
-	cli := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
-
-	params := &ec2.StartInstancesInput{
-		InstanceIds: ids,
-	}
-
-	resp, err := cli.StartInstances(params)
+	resp, err := startInstances(region, ids)
 	if err != nil {
 		log.Fatalf("error during launching: %s", err.Error())
 		return
@@ -216,6 +214,16 @@ func doEc2start(c *cli.Context) {
 	}
 
 	log.Printf("finished launching.")
+}
+
+func startInstances(region string, ids []*string) (*ec2.StartInstancesOutput, error) {
+	cli := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
+
+	params := &ec2.StartInstancesInput{
+		InstanceIds: ids,
+	}
+
+	return cli.StartInstances(params)
 }
 
 func doEc2stop(c *cli.Context) {
@@ -340,6 +348,21 @@ func doEc2type(c *cli.Context) {
 		}
 
 		log.Printf("%s is modified the instance type to %s", *i, iType)
+
+		if c.Bool(OPT_START) {
+			resp, err := startInstances(region, []*string{i})
+			if err != nil {
+				log.Fatalf("error during starting instance: %s", err.Error())
+				return
+			}
+
+			for _, status := range resp.StartingInstances {
+				id := convertNilString(status.InstanceId)
+				pState := convertNilString(status.PreviousState.Name)
+				cState := convertNilString(status.CurrentState.Name)
+				log.Printf("launched %s: %s -> %s", id, pState, cState)
+			}
+		}
 	}
 
 	log.Printf("finished modifying instance type.")

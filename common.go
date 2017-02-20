@@ -23,6 +23,7 @@ const (
 	OPT_INSTANCE_ID = "instance-id"
 	OPT_EIP_ID      = "eip-id"
 	OPT_I_TYPE      = "type"
+	OPT_START       = "start"
 
 	OPT_FORCE           = "force"
 	OPT_ALLOCATE        = "allocate"

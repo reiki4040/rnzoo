@@ -11,6 +11,7 @@ import (
 	"github.com/codegangsta/cli"
 
 	"github.com/reiki4040/cstore"
+	"github.com/reiki4040/peco"
 	myec2 "github.com/reiki4040/rnzoo/ec2"
 )
 
@@ -40,6 +41,11 @@ const (
 	EC2LIST_FORCE_USAGE  = `reload ec2 (force connect to AWS)`
 	EC2LIST_REGION_USAGE = `specify AWS region name.`
 	EC2LIST_TSV          = `output with tab separate format (TSV)`
+
+	EC2TYPE_DESC = `
+	modify EC2 isntacne type. the instance must be already stopped.
+	the max of type in selection list are t2, c4, m4, r4 series's large size.
+	if you want other types, please use -t, --type option.`
 )
 
 var commandInit = cli.Command{
@@ -94,6 +100,27 @@ var commandEc2stop = cli.Command{
 		cli.StringFlag{
 			Name:  OPT_INSTANCE_ID,
 			Usage: "specify stop instance id.",
+		},
+	},
+}
+
+var commandEc2type = cli.Command{
+	Name:        "ec2type",
+	Usage:       "modify ec2 isntance type",
+	Description: EC2TYPE_DESC,
+	Action:      doEc2type,
+	Flags: []cli.Flag{
+		cli.StringFlag{
+			Name:  OPT_INSTANCE_ID,
+			Usage: "specify already stopped instance id.",
+		},
+		cli.StringFlag{
+			Name:  OPT_I_TYPE + ", t",
+			Usage: "specify new instance type.",
+		},
+		cli.BoolFlag{
+			Name:  OPT_START,
+			Usage: "start the instance after modifying type.",
 		},
 	},
 }
@@ -173,13 +200,7 @@ func doEc2start(c *cli.Context) {
 		ids = []*string{aws.String(instanceId)}
 	}
 
-	cli := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
-
-	params := &ec2.StartInstancesInput{
-		InstanceIds: ids,
-	}
-
-	resp, err := cli.StartInstances(params)
+	resp, err := startInstances(region, ids)
 	if err != nil {
 		log.Fatalf("error during launching: %s", err.Error())
 		return
@@ -193,6 +214,16 @@ func doEc2start(c *cli.Context) {
 	}
 
 	log.Printf("finished launching.")
+}
+
+func startInstances(region string, ids []*string) (*ec2.StartInstancesOutput, error) {
+	cli := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
+
+	params := &ec2.StartInstancesInput{
+		InstanceIds: ids,
+	}
+
+	return cli.StartInstances(params)
 }
 
 func doEc2stop(c *cli.Context) {
@@ -249,6 +280,106 @@ func doEc2stop(c *cli.Context) {
 
 	log.Printf("finished stopping.")
 }
+
+func doEc2type(c *cli.Context) {
+	prepare(c)
+
+	region := c.String(OPT_REGION)
+	if region == "" {
+		// load config
+		c, err := GetDefaultConfig()
+		if err != nil {
+			log.Printf("can not load rnzoo config: %s\n", err.Error())
+		}
+
+		region = c.AWSRegion
+	}
+
+	instanceId := c.String(OPT_INSTANCE_ID)
+	var ids []*string
+	if instanceId == "" {
+
+		h, err := NewRnzooCStoreManager()
+		if err != nil {
+			log.Printf("can not load EC2: %s\n", err.Error())
+		}
+
+		ids, err = h.ChooseEC2(region, myec2.EC2_STATE_STOPPED, true)
+		if err != nil {
+			log.Fatalf("error during selecting: %s", err.Error())
+			return
+		}
+
+	} else {
+		ids = []*string{aws.String(instanceId)}
+	}
+
+	iType := c.String(OPT_I_TYPE)
+	if iType == "" {
+		chosenType, err := peco.Choose("Instance Type", "Please select Instance Type", "", EC2InstanceTypeList)
+		if err != nil {
+			log.Fatalf("error during select instance type: %s", err.Error())
+			return
+		}
+
+		if len(chosenType) != 1 {
+			log.Fatal("multiple type selected. please single type.")
+			return
+		}
+
+		iType = chosenType[0].Value()
+	}
+
+	cli := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
+
+	for _, i := range ids {
+		params := &ec2.ModifyInstanceAttributeInput{
+			InstanceId: i,
+			InstanceType: &ec2.AttributeValue{
+				Value: aws.String(iType),
+			},
+		}
+
+		// resp is empty
+		_, err := cli.ModifyInstanceAttribute(params)
+		if err != nil {
+			log.Fatalf("error during modify instance type: %s", err.Error())
+			return
+		}
+
+		log.Printf("%s is modified the instance type to %s", *i, iType)
+
+		if c.Bool(OPT_START) {
+			resp, err := startInstances(region, []*string{i})
+			if err != nil {
+				log.Fatalf("error during starting instance: %s", err.Error())
+				return
+			}
+
+			for _, status := range resp.StartingInstances {
+				id := convertNilString(status.InstanceId)
+				pState := convertNilString(status.PreviousState.Name)
+				cState := convertNilString(status.CurrentState.Name)
+				log.Printf("launched %s: %s -> %s", id, pState, cState)
+			}
+		}
+	}
+
+	log.Printf("finished modifying instance type.")
+}
+
+var (
+	EC2InstanceTypeList = []peco.Choosable{
+		&peco.Choice{C: "t2.nano", V: "t2.nano"},
+		&peco.Choice{C: "t2.micro", V: "t2.micro"},
+		&peco.Choice{C: "t2.small", V: "t2.small"},
+		&peco.Choice{C: "t2.medium", V: "t2.medium"},
+		&peco.Choice{C: "t2.large", V: "t2.large"},
+		&peco.Choice{C: "c4.large", V: "c4.large"},
+		&peco.Choice{C: "m4.large", V: "m4.large"},
+		&peco.Choice{C: "r4.large", V: "r4.large"},
+	}
+)
 
 var commandAttachEIP = cli.Command{
 	Name:        "attach-eip",

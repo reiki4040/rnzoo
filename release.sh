@@ -24,7 +24,7 @@ function releaseflow() {
   # create github release. dev version is pre release
   echo $version | grep -q "-"
   pre_release=""
-  if [ $? ]; then
+  if [ $? == 1 ]; then
     pre_release="-p"
   fi
   hub release create $pre_release -a $archive -m "$version" "$version"

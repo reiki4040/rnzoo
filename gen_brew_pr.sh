@@ -40,7 +40,7 @@ function main() {
   git checkout -b ${bname}
 
   echo $ver | grep -q "-"
-  if [ $? ]; then
+  if [ $? == 1 ]; then
     # replace version and sha256 (version is homebrew variable. so do not use '=')
 	# version format is not allow v prefix (NG: v0.1.0, OK: 0.1.0)
     v=${ver/v/}

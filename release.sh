@@ -20,6 +20,10 @@ function releaseflow() {
   # TODO get version and archive path from build_with_docker...
   version=$(git describe --tags)
   archive="archives/rnzoo-${version}-darwin-amd64.tar.gz"
+  ls $archive> /dev/null 2>&1
+  if [ $? != 0 ]; then
+    err_exit "not found archive $archive"
+  fi
 
   # create github release. dev version is pre release
   echo $version | grep -q "-"

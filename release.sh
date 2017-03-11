@@ -4,9 +4,9 @@ function usage() {
   cat <<_EOB
 rnzoo release script.
 
-  - build rnzoo binary and create archive.
-  - create github release and upload archive.
-  - create homebrew pull request that new version
+  - build rnzoo binary and create archive. (call build_with_docker.sh)
+  - create github release and upload archive. (call hub command)
+  - create homebrew pull request that new version (call gen_brew_pr.sh)
 
 [Options]
   -d: develop version release
@@ -21,9 +21,13 @@ function releaseflow() {
   version=$(git describe --tags)
   archive="archives/rnzoo-${version}-darwin-amd64.tar.gz"
 
-  # create github release
-  # TODO release message creation
-  hub release create -p -a $archive -m "$version" "$version"
+  # create github release. dev version is pre release
+  echo $version | grep -q "-"
+  pre_release=""
+  if [ $? ]; then
+    pre_release="-p"
+  fi
+  hub release create $pre_release -a $archive -m "$version" "$version"
 
   # create homebrew Pull Request
   sha256=$(shasum -a 256 $archive | cut -d' ' -f1)

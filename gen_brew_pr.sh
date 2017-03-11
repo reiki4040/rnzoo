@@ -39,18 +39,23 @@ function main() {
   bname="version/${ver}"
   git checkout -b ${bname}
 
-  # replace devel_version and sha256
-  # TODO devel/normal switch and normal version is not allow 'v' prefix so need removing
-  #cat rnzoo.rb | sed -e "s/version \".*\"/version \"${ver}\"/" | sed -e "s/normal_sha256 = \".*\"/normal_sha256 = \"${s256}\"/" > rnzoo.rb.new
-  cat rnzoo.rb | sed -e "s/devel_version = \".*\"/devel_version = \"${ver}\"/" | sed -e "s/devel_sha256 = \".*\"/devel_sha256 = \"${s256}\"/" > rnzoo.rb.new
+  echo $ver | grep -q "-"
+  if [ $? ]; then
+    # replace version and sha256 (version is homebrew variable. so do not use '=')
+	# version format is not allow v prefix (NG: v0.1.0, OK: 0.1.0)
+    v=${ver/v/}
+    cat rnzoo.rb | sed -e "s/version \".*\"/version \"${v}\"/" | sed -e "s/normal_sha256 = \".*\"/normal_sha256 = \"${s256}\"/" > rnzoo.rb.new
+  else
+    # replace devel_version and sha256
+    cat rnzoo.rb | sed -e "s/devel_version = \".*\"/devel_version = \"${ver}\"/" | sed -e "s/devel_sha256 = \".*\"/devel_sha256 = \"${s256}\"/" > rnzoo.rb.new
+  fi
 
   mv rnzoo.rb.new rnzoo.rb
 
   echo "brew audit..."
   brew audit --strict --online rnzoo.rb
   if [ $? != 0 ]; then
-    echo "failed brew audit, so stop."
-	exit 1
+    err_exit "failed brew audit, so stop."
   fi
   echo "brew audit is OK"
 

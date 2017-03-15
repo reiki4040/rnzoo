@@ -46,6 +46,10 @@ const (
 	modify EC2 isntacne type. the instance must be already stopped.
 	the max of type in selection list are t2, c4, m4, r4 series's large size.
 	if you want other types, please use -t, --type option.`
+
+	EC2RUN_DESC = `
+	run EC2 instances.
+	`
 )
 
 var commandInit = cli.Command{
@@ -121,6 +125,19 @@ var commandEc2type = cli.Command{
 		cli.BoolFlag{
 			Name:  OPT_START,
 			Usage: "start the instance after modifying type.",
+		},
+	},
+}
+
+var commandEc2run = cli.Command{
+	Name:        "ec2run",
+	Usage:       "run new ec2 isntances",
+	Description: EC2RUN_DESC,
+	Action:      doEc2run,
+	Flags: []cli.Flag{
+		cli.BoolFlag{
+			Name:  OPT_DRYRUN,
+			Usage: "dry-run ec2 run.",
 		},
 	},
 }
@@ -366,6 +383,158 @@ func doEc2type(c *cli.Context) {
 	}
 
 	log.Printf("finished modifying instance type.")
+}
+
+type EC2RunConfig struct {
+	Name            string `yaml:"name"`
+	AmiId           string `yaml:"ami_id"`
+	IamRoleArn      string `yaml:"iam_role_arn"`
+	IamRoleName     string `yaml:"iam_role_name"`
+	PublicIpEnabled bool   `yaml:"public_ip_enabled"`
+	Ipv6Enabled     bool   `yaml:"ipv6_enabled"`
+	Type            string `yaml:"instance_type"`
+	KeyPair         string `yaml:"key_pair"`
+
+	EbsDevices   []EC2RunEbs `yaml:"ebs_volumes"`
+	EbsOptimized bool        `yaml:"ebs_optimized"`
+
+	Tags             []EC2RunConfigTag    `yaml:"tags"`
+	SecurityGroupIds []string             `yaml:"security_group_ids"`
+	Launches         []EC2RunConfigLaunch `yaml:"launches"`
+}
+
+type EC2RunEbs struct {
+	DeviceName          string `yaml:"device_name"`
+	DeleteOnTermination bool   `yaml:"delete_on_termination"`
+	Encrypted           bool   `yaml:"encrypted"`
+	SizeGB              int64  `yaml:"size_gb"`
+	VolumeType          string `yaml:"volume_type"`
+}
+
+type EC2RunConfigTag struct {
+	Key   string `yaml:"key"`
+	Value string `yaml:"value"`
+}
+type EC2RunConfigLaunch struct {
+	NameTag  string `yaml:"name_tag"`
+	SubnetId string `yaml:"subnet_id"`
+}
+
+func (c *EC2RunConfig) genLauncher() *myec2.Launcher {
+	sgIds := make([]*string, 0, len(c.SecurityGroupIds))
+	for _, sgId := range c.SecurityGroupIds {
+		sgIds = append(sgIds, &sgId)
+	}
+
+	var roleName *string
+	if c.IamRoleName != "" {
+		roleName = &c.IamRoleName
+	}
+
+	ebss := make([]myec2.Ebs, 0, len(c.EbsDevices))
+	for _, e := range c.EbsDevices {
+		ebs := myec2.Ebs{
+			DeviceName:          e.DeviceName,
+			DeleteOnTermination: e.DeleteOnTermination,
+			Encrypted:           e.Encrypted,
+			SizeGB:              e.SizeGB,
+			VolumeType:          e.VolumeType,
+		}
+
+		ebss = append(ebss, ebs)
+	}
+
+	l := &myec2.Launcher{
+		AmiId:            c.AmiId,
+		InstanceType:     c.Type,
+		KeyName:          c.KeyPair,
+		SecurityGroupIds: sgIds,
+		PublicIpEnabled:  c.PublicIpEnabled,
+		Ipv6Enabled:      c.Ipv6Enabled,
+		IamRoleName:      roleName,
+		EbsDevices:       ebss,
+		EbsOptimized:     c.EbsOptimized,
+	}
+
+	return l
+}
+
+func doEc2run(c *cli.Context) {
+	prepare(c)
+
+	region := c.String(OPT_REGION)
+	if region == "" {
+		// load config
+		c, err := GetDefaultConfig()
+		if err != nil {
+			log.Printf("can not load rnzoo config: %s\n", err.Error())
+		}
+
+		region = c.AWSRegion
+	}
+
+	args := c.Args()
+	if len(args) < 1 {
+		log.Fatal("required ec2 run config file.")
+	}
+
+	cList := make([]EC2RunConfig, 0, len(args))
+	for _, confPath := range args {
+		configs := make([]EC2RunConfig, 0, 1)
+		err := cstore.LoadFromYamlFile(confPath, &configs)
+		if err != nil {
+			log.Fatalf("failed load conf file: %v", err)
+		}
+
+		cList = append(cList, configs...)
+	}
+
+	cli := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
+
+	for _, conf := range cList {
+		tags := make([]*ec2.Tag, 0, len(conf.Tags))
+		for _, t := range conf.Tags {
+			ec2t := ec2.Tag{
+				Key:   aws.String(t.Key),
+				Value: aws.String(t.Value),
+			}
+			tags = append(tags, &ec2t)
+		}
+
+		launcher := conf.genLauncher()
+		for _, l := range conf.Launches {
+
+			res, err := launcher.Launch(cli, l.SubnetId, 1, c.Bool(OPT_DRYRUN))
+			if err != nil {
+				// TODO if dry run error then next.
+				log.Fatalf("error during starting instance: %s", err.Error())
+			}
+			log.Printf("%v\n", res)
+
+			// TODO replace name tag values
+			nameTag := &ec2.Tag{
+				Key:   aws.String("Name"),
+				Value: aws.String(l.NameTag),
+			}
+
+			for _, ins := range res.Instances {
+				tagp := &ec2.CreateTagsInput{
+					Resources: []*string{
+						ins.InstanceId,
+					},
+					// append returns new slice when over cap
+					Tags: append(tags, nameTag),
+				}
+
+				_, err := cli.CreateTags(tagp)
+				if err != nil {
+					log.Printf("failed tagging so skipped %s: %v\n", ins.InstanceId, err)
+				}
+
+				log.Printf("%s\t%s\t%s\t%s\t%s\n", convertNilString(ins.InstanceId), l.NameTag, convertNilString(ins.State.Name), convertNilString(ins.PublicIpAddress), convertNilString(ins.PrivateIpAddress))
+			}
+		}
+	}
 }
 
 var (

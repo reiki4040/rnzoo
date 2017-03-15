@@ -33,6 +33,8 @@ const (
 	OPT_WITHOUT_RELEASE = "without-release"
 	OPT_REUSE           = "reuse"
 	OPT_MOVE            = "move"
+
+	OPT_DRYRUN = "dry-run"
 )
 
 var silent bool

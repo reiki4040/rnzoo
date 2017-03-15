@@ -26,6 +26,7 @@ var Commands = []cli.Command{
 	commandEc2stop,
 	commandEc2list,
 	commandEc2type,
+	commandEc2run,
 	commandAttachEIP,
 	commandDetachEIP,
 }

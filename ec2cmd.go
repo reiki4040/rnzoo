@@ -48,7 +48,7 @@ const (
 	if you want other types, please use -t, --type option.`
 
 	EC2RUN_DESC = `
-	run EC2 instances.
+	run EC2 instances with configuration yaml file.
 	`
 )
 
@@ -138,6 +138,14 @@ var commandEc2run = cli.Command{
 		cli.BoolFlag{
 			Name:  OPT_DRYRUN,
 			Usage: "dry-run ec2 run.",
+		},
+		cli.StringFlag{
+			Name:  OPT_AMI_ID,
+			Usage: "overwrite run AMI ID.",
+		},
+		cli.StringFlag{
+			Name:  OPT_I_TYPE,
+			Usage: "overwrite run instance type.",
 		},
 	},
 }
@@ -502,6 +510,14 @@ func doEc2run(c *cli.Context) {
 		}
 
 		launcher := conf.genLauncher()
+
+		// overwrite launch parameter with command options
+		if c.String(OPT_AMI_ID) != "" {
+			launcher.AmiId = c.String(OPT_AMI_ID)
+		}
+		if c.String(OPT_I_TYPE) != "" {
+			launcher.InstanceType = c.String(OPT_I_TYPE)
+		}
 		for _, l := range conf.Launches {
 
 			res, err := launcher.Launch(cli, l.SubnetId, 1, c.Bool(OPT_DRYRUN))

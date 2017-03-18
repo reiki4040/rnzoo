@@ -18,6 +18,10 @@ var CliFlags = []cli.Flag{
 		Name:  OPT_SILENT,
 		Usage: "if you want do not output messages.",
 	},
+	cli.BoolFlag{
+		Name:  OPT_VERBOSE,
+		Usage: "if you want show debug messages.",
+	},
 }
 
 var Commands = []cli.Command{

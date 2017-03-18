@@ -53,6 +53,7 @@ const (
 	EC2RUN_DESC = `
 	run EC2 instances with configuration yaml file.
 	`
+	DEFAULT_OUTPUT_TEMPLATE = "{{.InstanceId}}\t{{.Name}}\t{{.PublicIp}}\t{{.PrivateIp}}"
 )
 
 var commandInit = cli.Command{
@@ -431,8 +432,9 @@ type EC2RunConfigTag struct {
 	Value string `yaml:"value"`
 }
 type EC2RunConfigLaunch struct {
-	NameTag  string `yaml:"name_tag"`
-	SubnetId string `yaml:"subnet_id"`
+	NameTagTemplate string `yaml:"name_tag_template"`
+	SubnetId        string `yaml:"subnet_id"`
+	OutputTemplate  string `yaml:"output_template"`
 }
 
 func (c *EC2RunConfig) genLauncher() *myec2.Launcher {
@@ -477,6 +479,52 @@ func (c *EC2RunConfig) genLauncher() *myec2.Launcher {
 type NameTagReplacement struct {
 	Symbol   string
 	Sequence string
+}
+
+func (r *NameTagReplacement) StringWithTemplate(templateString string) (string, error) {
+	t := template.New("instance name template")
+	t, err := t.Parse(templateString)
+	if err != nil {
+		return "", err
+	}
+
+	b := make([]byte, 0, 4096)
+	buf := bytes.NewBuffer(b)
+	err = t.Execute(buf, r)
+	if err != nil {
+		return "", err
+	}
+
+	replacedNameTag := buf.String()
+	return replacedNameTag, nil
+}
+
+type EC2RunOutput struct {
+	InstanceId string
+	Name       string
+	PrivateIp  string
+	PublicIp   string
+
+	Symbol   string
+	Sequence string
+}
+
+func (o *EC2RunOutput) StringWithTemplate(templateString string) (string, error) {
+	t := template.New("ec2run output template")
+	t, err := t.Parse(templateString)
+	if err != nil {
+		return "", err
+	}
+
+	b := make([]byte, 0, 4096)
+	buf := bytes.NewBuffer(b)
+	err = t.Execute(buf, o)
+	if err != nil {
+		return "", err
+	}
+
+	replaced := buf.String()
+	return replaced, nil
 }
 
 func doEc2run(c *cli.Context) {
@@ -533,29 +581,23 @@ func doEc2run(c *cli.Context) {
 		for i, l := range conf.Launches {
 			// name replace check before launch instance
 			// because name template fail, the instance is no Name tag instance.
-			t := template.New("instance name template")
-			t, err := t.Parse(l.NameTag)
-			if err != nil {
-				log.Fatalf("error during parse name tag template: %v", err)
-			}
-			nr := NameTagReplacement{
+			nr := &NameTagReplacement{
 				Symbol:   c.String(OPT_SYMBOL),
 				Sequence: strconv.Itoa(i + 1),
 			}
-			b := make([]byte, 0, 4096)
-			buf := bytes.NewBuffer(b)
-			err = t.Execute(buf, nr)
+
+			replacedNameTag, err := nr.StringWithTemplate(l.NameTagTemplate)
 			if err != nil {
 				log.Fatalf("error during replacing name tag template: %v", err)
 			}
-			replacedNameTag := buf.String()
+			debug(replacedNameTag)
 
 			res, err := launcher.Launch(cli, l.SubnetId, 1, c.Bool(OPT_DRYRUN))
 			if err != nil {
 				// TODO if dry run error then next.
 				log.Fatalf("error during starting instance: %s", err.Error())
 			}
-			log.Printf("%v\n", res)
+			debug(res)
 
 			nameTag := &ec2.Tag{
 				Key:   aws.String("Name"),
@@ -573,10 +615,29 @@ func doEc2run(c *cli.Context) {
 
 				_, err := cli.CreateTags(tagp)
 				if err != nil {
-					log.Printf("failed tagging so skipped %s: %v\n", ins.InstanceId, err)
+					log.Println(fmt.Sprintf("failed tagging so skipped %s: %v\n", ins.InstanceId, err))
 				}
 
-				log.Printf("%s\t%s\t%s\t%s\t%s\n", convertNilString(ins.InstanceId), replacedNameTag, convertNilString(ins.State.Name), convertNilString(ins.PublicIpAddress), convertNilString(ins.PrivateIpAddress))
+				output := &EC2RunOutput{
+					InstanceId: convertNilString(ins.InstanceId),
+					Name:       replacedNameTag,
+					PublicIp:   convertNilString(ins.PublicIpAddress),
+					PrivateIp:  convertNilString(ins.PrivateIpAddress),
+					Symbol:     nr.Symbol,
+					Sequence:   nr.Sequence,
+				}
+
+				outputTemplate := DEFAULT_OUTPUT_TEMPLATE
+				if l.OutputTemplate != "" {
+					outputTemplate = l.OutputTemplate
+				}
+
+				oString, err := output.StringWithTemplate(outputTemplate)
+				if err != nil {
+					log.Println(fmt.Sprintf("%s failed replacing output template: %v", ins.InstanceId, err))
+				}
+
+				fmt.Println(oString)
 			}
 		}
 	}

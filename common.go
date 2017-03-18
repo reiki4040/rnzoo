@@ -35,6 +35,7 @@ const (
 	OPT_MOVE            = "move"
 
 	OPT_AMI_ID = "ami-id"
+	OPT_SYMBOL = "symbol"
 	OPT_DRYRUN = "dry-run"
 )
 

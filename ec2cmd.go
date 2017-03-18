@@ -1,9 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"os"
+	"strconv"
+	"text/template"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -146,6 +149,10 @@ var commandEc2run = cli.Command{
 		cli.StringFlag{
 			Name:  OPT_I_TYPE,
 			Usage: "overwrite run instance type.",
+		},
+		cli.StringFlag{
+			Name:  OPT_SYMBOL,
+			Usage: "replace {{.Symbol}} in name tag",
 		},
 	},
 }
@@ -467,6 +474,11 @@ func (c *EC2RunConfig) genLauncher() *myec2.Launcher {
 	return l
 }
 
+type NameTagReplacement struct {
+	Symbol   string
+	Sequence string
+}
+
 func doEc2run(c *cli.Context) {
 	prepare(c)
 
@@ -518,7 +530,25 @@ func doEc2run(c *cli.Context) {
 		if c.String(OPT_I_TYPE) != "" {
 			launcher.InstanceType = c.String(OPT_I_TYPE)
 		}
-		for _, l := range conf.Launches {
+		for i, l := range conf.Launches {
+			// name replace check before launch instance
+			// because name template fail, the instance is no Name tag instance.
+			t := template.New("instance name template")
+			t, err := t.Parse(l.NameTag)
+			if err != nil {
+				log.Fatalf("error during parse name tag template: %v", err)
+			}
+			nr := NameTagReplacement{
+				Symbol:   c.String(OPT_SYMBOL),
+				Sequence: strconv.Itoa(i + 1),
+			}
+			b := make([]byte, 0, 4096)
+			buf := bytes.NewBuffer(b)
+			err = t.Execute(buf, nr)
+			if err != nil {
+				log.Fatalf("error during replacing name tag template: %v", err)
+			}
+			replacedNameTag := buf.String()
 
 			res, err := launcher.Launch(cli, l.SubnetId, 1, c.Bool(OPT_DRYRUN))
 			if err != nil {
@@ -527,10 +557,9 @@ func doEc2run(c *cli.Context) {
 			}
 			log.Printf("%v\n", res)
 
-			// TODO replace name tag values
 			nameTag := &ec2.Tag{
 				Key:   aws.String("Name"),
-				Value: aws.String(l.NameTag),
+				Value: aws.String(replacedNameTag),
 			}
 
 			for _, ins := range res.Instances {
@@ -547,7 +576,7 @@ func doEc2run(c *cli.Context) {
 					log.Printf("failed tagging so skipped %s: %v\n", ins.InstanceId, err)
 				}
 
-				log.Printf("%s\t%s\t%s\t%s\t%s\n", convertNilString(ins.InstanceId), l.NameTag, convertNilString(ins.State.Name), convertNilString(ins.PublicIpAddress), convertNilString(ins.PrivateIpAddress))
+				log.Printf("%s\t%s\t%s\t%s\t%s\n", convertNilString(ins.InstanceId), replacedNameTag, convertNilString(ins.State.Name), convertNilString(ins.PublicIpAddress), convertNilString(ins.PrivateIpAddress))
 			}
 		}
 	}

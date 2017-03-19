@@ -378,6 +378,138 @@ func GetNotAssociateEIP(cli *ec2.EC2) (*ec2.Address, error) {
 	return nil, nil
 }
 
+type Launcher struct {
+	AmiId            string
+	InstanceType     string
+	KeyName          string
+	SecurityGroupIds []*string
+	PublicIpEnabled  bool
+	Ipv6Enabled      bool
+	IamRoleName      *string
+	EbsDevices       []Ebs
+	EbsOptimized     bool
+}
+
+type Ebs struct {
+	DeviceName          string
+	DeleteOnTermination bool
+	Encrypted           bool
+	SizeGB              int64
+	VolumeType          string
+}
+
+func (d *Launcher) Launch(cli *ec2.EC2, subnetId string, count int, dryrun bool) (*ec2.Reservation, error) {
+	var ebsMappings []*ec2.BlockDeviceMapping
+	if len(d.EbsDevices) > 0 {
+		ebsMappings = make([]*ec2.BlockDeviceMapping, 0, len(d.EbsDevices))
+		for _, ebs := range d.EbsDevices {
+			m := &ec2.BlockDeviceMapping{
+				DeviceName: aws.String(ebs.DeviceName),
+				Ebs: &ec2.EbsBlockDevice{
+					DeleteOnTermination: aws.Bool(ebs.DeleteOnTermination),
+					Encrypted:           aws.Bool(ebs.Encrypted),
+					//Iops:                aws.Int64(100),
+					//SnapshotId:          aws.String("String"),
+					VolumeSize: aws.Int64(ebs.SizeGB),
+					VolumeType: aws.String(ebs.VolumeType),
+				},
+				//NoDevice:    aws.String("String"),
+				//VirtualName: aws.String("String"),
+			}
+
+			ebsMappings = append(ebsMappings, m)
+		}
+	}
+
+	var keyName *string
+	if d.KeyName != "" {
+		keyName = &d.KeyName
+	}
+
+	params := &ec2.RunInstancesInput{
+		ImageId:             aws.String(d.AmiId),
+		MaxCount:            aws.Int64(int64(count)),
+		MinCount:            aws.Int64(int64(count)),
+		BlockDeviceMappings: ebsMappings,
+		//AdditionalInfo: aws.String("String"),
+		//ClientToken:           aws.String("String"),
+		//DisableApiTermination: aws.Bool(true),
+		DryRun:       aws.Bool(dryrun),
+		EbsOptimized: aws.Bool(d.EbsOptimized),
+		IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
+			//Arn: aws.String("arn:aws:iam::694958806517:instance-profile/sample_iamrole"),
+			Name: d.IamRoleName,
+		},
+		InstanceType: aws.String(d.InstanceType),
+		//Ipv6AddressCount: aws.Int64(1),
+		//Ipv6Addresses: []*ec2.InstanceIpv6Address{
+		//	{ // Required
+		//		Ipv6Address: aws.String("String"),
+		//	},
+		//	// More values...
+		//},
+		//KernelId: aws.String("String"),
+		KeyName: keyName,
+		//Monitoring: &ec2.RunInstancesMonitoringEnabled{
+		//	Enabled: aws.Bool(true), // Required
+		//},
+		NetworkInterfaces: []*ec2.InstanceNetworkInterfaceSpecification{
+			&ec2.InstanceNetworkInterfaceSpecification{
+				AssociatePublicIpAddress: aws.Bool(d.PublicIpEnabled),
+				DeviceIndex:              aws.Int64(0),
+				SubnetId:                 aws.String(subnetId),
+				Groups:                   d.SecurityGroupIds,
+			},
+		},
+		//	{ // Required
+		//		AssociatePublicIpAddress: aws.Bool(false),
+		//		DeleteOnTermination:      aws.Bool(true),
+		//		Description:              aws.String("String"),
+		//		DeviceIndex:              aws.Int64(1),
+		//		Groups: []*string{
+		//			aws.String("String"), // Required
+		//			// More values...
+		//		},
+		//		// SDK compile error IPv6... unknown field...
+		//		//Ipv6AddressCount: aws.Int64(1),
+		//		//Ipv6Addresses: []*ec2.InstanceIpv6Address{
+		//		//	{ // Required
+		//		//		Ipv6Address: aws.String("String"),
+		//		//	},
+		//		//	// More values...
+		//		//},
+		//		//NetworkInterfaceId: aws.String("String"),
+		//		//PrivateIpAddress:   aws.String("String"),
+		//		//PrivateIpAddresses: []*ec2.PrivateIpAddressSpecification{
+		//		//	{ // Required
+		//		//		PrivateIpAddress: aws.String("String"), // Required
+		//		//		Primary:          aws.Bool(true),
+		//		//	},
+		//		//	// More values...
+		//		//},
+		//		//SecondaryPrivateIpAddressCount: aws.Int64(1),
+		//		SubnetId: aws.String(subnetId),
+		//	},
+		//	// More values...
+		//},
+		//Placement: &ec2.Placement{
+		//	Affinity:         aws.String("String"),
+		//	AvailabilityZone: aws.String("String"),
+		//	GroupName:        aws.String("String"),
+		//	HostId:           aws.String("String"),
+		//	Tenancy:          aws.String("Tenancy"),
+		//},
+		//PrivateIpAddress: aws.String("String"),
+		//RamdiskId:        aws.String("String"),
+		//SecurityGroupIds: p.SecurityGroupIds,
+		//SubnetId:         aws.String(p.SubnetId),
+		//UserData: aws.String("String"),
+	}
+
+	return cli.RunInstances(params)
+
+}
+
 func convertNilString(s *string) string {
 	if s == nil {
 		return ""

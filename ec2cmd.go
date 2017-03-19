@@ -1,9 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"os"
+	"strconv"
+	"text/template"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -46,6 +49,11 @@ const (
 	modify EC2 isntacne type. the instance must be already stopped.
 	the max of type in selection list are t2, c4, m4, r4 series's large size.
 	if you want other types, please use -t, --type option.`
+
+	EC2RUN_DESC = `
+	run EC2 instances with configuration yaml file.
+	`
+	DEFAULT_OUTPUT_TEMPLATE = "{{.InstanceId}}\t{{.Name}}\t{{.PublicIp}}\t{{.PrivateIp}}"
 )
 
 var commandInit = cli.Command{
@@ -121,6 +129,35 @@ var commandEc2type = cli.Command{
 		cli.BoolFlag{
 			Name:  OPT_START,
 			Usage: "start the instance after modifying type.",
+		},
+	},
+}
+
+var commandEc2run = cli.Command{
+	Name:        "ec2run",
+	Usage:       "run new ec2 instances",
+	Description: EC2RUN_DESC,
+	Action:      doEc2run,
+	Flags: []cli.Flag{
+		cli.BoolFlag{
+			Name:  OPT_DRYRUN,
+			Usage: "dry-run ec2 run.",
+		},
+		cli.StringFlag{
+			Name:  OPT_SKELETON,
+			Usage: "store skeleton config yaml to specified file path",
+		},
+		cli.StringFlag{
+			Name:  OPT_AMI_ID,
+			Usage: "overwrite run AMI ID.",
+		},
+		cli.StringFlag{
+			Name:  OPT_I_TYPE,
+			Usage: "overwrite run instance type.",
+		},
+		cli.StringFlag{
+			Name:  OPT_SYMBOL,
+			Usage: "replace {{.Symbol}} in name tag",
 		},
 	},
 }
@@ -366,6 +403,294 @@ func doEc2type(c *cli.Context) {
 	}
 
 	log.Printf("finished modifying instance type.")
+}
+
+type EC2RunConfig struct {
+	Name            string `yaml:"name"`
+	AmiId           string `yaml:"ami_id"`
+	IamRoleName     string `yaml:"iam_role_name"`
+	PublicIpEnabled bool   `yaml:"public_ip_enabled"`
+	Ipv6Enabled     bool   `yaml:"ipv6_enabled"`
+	Type            string `yaml:"instance_type"`
+	KeyPair         string `yaml:"key_pair"`
+
+	EbsDevices   []EC2RunEbs `yaml:"ebs_volumes"`
+	EbsOptimized bool        `yaml:"ebs_optimized"`
+
+	Tags             []EC2RunConfigTag    `yaml:"tags"`
+	SecurityGroupIds []string             `yaml:"security_group_ids"`
+	Launches         []EC2RunConfigLaunch `yaml:"launches"`
+}
+
+type EC2RunEbs struct {
+	DeviceName          string `yaml:"device_name"`
+	DeleteOnTermination bool   `yaml:"delete_on_termination"`
+	Encrypted           bool   `yaml:"encrypted"`
+	SizeGB              int64  `yaml:"size_gb"`
+	VolumeType          string `yaml:"volume_type"`
+}
+
+type EC2RunConfigTag struct {
+	Key   string `yaml:"key"`
+	Value string `yaml:"value"`
+}
+type EC2RunConfigLaunch struct {
+	NameTagTemplate string `yaml:"name_tag_template"`
+	SubnetId        string `yaml:"subnet_id"`
+	OutputTemplate  string `yaml:"output_template"`
+}
+
+func (c *EC2RunConfig) genLauncher() *myec2.Launcher {
+	sgIds := make([]*string, 0, len(c.SecurityGroupIds))
+	for _, sgId := range c.SecurityGroupIds {
+		sgIds = append(sgIds, &sgId)
+	}
+
+	var roleName *string
+	if c.IamRoleName != "" {
+		roleName = &c.IamRoleName
+	}
+
+	ebss := make([]myec2.Ebs, 0, len(c.EbsDevices))
+	for _, e := range c.EbsDevices {
+		ebs := myec2.Ebs{
+			DeviceName:          e.DeviceName,
+			DeleteOnTermination: e.DeleteOnTermination,
+			Encrypted:           e.Encrypted,
+			SizeGB:              e.SizeGB,
+			VolumeType:          e.VolumeType,
+		}
+
+		ebss = append(ebss, ebs)
+	}
+
+	l := &myec2.Launcher{
+		AmiId:            c.AmiId,
+		InstanceType:     c.Type,
+		KeyName:          c.KeyPair,
+		SecurityGroupIds: sgIds,
+		PublicIpEnabled:  c.PublicIpEnabled,
+		Ipv6Enabled:      c.Ipv6Enabled,
+		IamRoleName:      roleName,
+		EbsDevices:       ebss,
+		EbsOptimized:     c.EbsOptimized,
+	}
+
+	return l
+}
+
+type NameTagReplacement struct {
+	Symbol   string
+	Sequence string
+}
+
+func (r *NameTagReplacement) StringWithTemplate(templateString string) (string, error) {
+	t := template.New("instance name template")
+	t, err := t.Parse(templateString)
+	if err != nil {
+		return "", err
+	}
+
+	b := make([]byte, 0, 4096)
+	buf := bytes.NewBuffer(b)
+	err = t.Execute(buf, r)
+	if err != nil {
+		return "", err
+	}
+
+	replacedNameTag := buf.String()
+	return replacedNameTag, nil
+}
+
+type EC2RunOutput struct {
+	InstanceId string
+	Name       string
+	PrivateIp  string
+	PublicIp   string
+
+	Symbol   string
+	Sequence string
+}
+
+func (o *EC2RunOutput) StringWithTemplate(templateString string) (string, error) {
+	t := template.New("ec2run output template")
+	t, err := t.Parse(templateString)
+	if err != nil {
+		return "", err
+	}
+
+	b := make([]byte, 0, 4096)
+	buf := bytes.NewBuffer(b)
+	err = t.Execute(buf, o)
+	if err != nil {
+		return "", err
+	}
+
+	replaced := buf.String()
+	return replaced, nil
+}
+
+func StoreSkeletonEC2RunConfigYaml(filePath string) error {
+	s := EC2RunConfig{
+		Name:            "skeleton config example. please replace  properties for your case.",
+		AmiId:           "ami-xxxxxxx",
+		IamRoleName:     "your_iam_role_name",
+		PublicIpEnabled: false,
+		Ipv6Enabled:     false,
+		Type:            "t2.nano",
+		KeyPair:         "your_key_pair_name",
+		EbsOptimized:    false,
+		EbsDevices: []EC2RunEbs{
+			EC2RunEbs{
+				DeviceName:          "/dev/sdb",
+				DeleteOnTermination: false,
+				Encrypted:           true,
+				SizeGB:              8,
+				VolumeType:          "gp2",
+			},
+		},
+		Tags: []EC2RunConfigTag{
+			EC2RunConfigTag{
+				Key:   "sample_key",
+				Value: "sample_value",
+			},
+		},
+		SecurityGroupIds: []string{"sg-xxxxxxxx", "sg-yyyyyyyy"},
+		Launches: []EC2RunConfigLaunch{
+			EC2RunConfigLaunch{
+				NameTagTemplate: "instance {{.Symbol}} {{.Sequence}}",
+				SubnetId:        "subnet-xxxxxxxx",
+				OutputTemplate:  "run {{.InstanceId}}, {{.Name}} publicIp {{.PublicIp}}, PrivateIp {{.PrivateIp}}, {{.Symbol}} {{.Sequence}}",
+			},
+		},
+	}
+
+	return cstore.StoreToYamlFile(filePath, []EC2RunConfig{s})
+}
+
+func doEc2run(c *cli.Context) {
+	prepare(c)
+
+	if c.String(OPT_SKELETON) != "" {
+		err := StoreSkeletonEC2RunConfigYaml(c.String(OPT_SKELETON))
+		if err != nil {
+			log.Printf("can not store Skeleton config yaml: %v\n", err)
+		}
+
+		os.Exit(0)
+	}
+
+	region := c.String(OPT_REGION)
+	if region == "" {
+		// load config
+		c, err := GetDefaultConfig()
+		if err != nil {
+			log.Printf("can not load rnzoo config: %s\n", err.Error())
+		}
+
+		region = c.AWSRegion
+	}
+
+	args := c.Args()
+	if len(args) < 1 {
+		log.Fatal("required ec2 run config file.")
+	}
+
+	cList := make([]EC2RunConfig, 0, len(args))
+	for _, confPath := range args {
+		configs := make([]EC2RunConfig, 0, 1)
+		err := cstore.LoadFromYamlFile(confPath, &configs)
+		if err != nil {
+			log.Fatalf("failed load conf file: %v", err)
+		}
+
+		cList = append(cList, configs...)
+	}
+
+	cli := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
+
+	for _, conf := range cList {
+		tags := make([]*ec2.Tag, 0, len(conf.Tags))
+		for _, t := range conf.Tags {
+			ec2t := ec2.Tag{
+				Key:   aws.String(t.Key),
+				Value: aws.String(t.Value),
+			}
+			tags = append(tags, &ec2t)
+		}
+
+		launcher := conf.genLauncher()
+
+		// overwrite launch parameter with command options
+		if c.String(OPT_AMI_ID) != "" {
+			launcher.AmiId = c.String(OPT_AMI_ID)
+		}
+		if c.String(OPT_I_TYPE) != "" {
+			launcher.InstanceType = c.String(OPT_I_TYPE)
+		}
+		for i, l := range conf.Launches {
+			// name replace check before launch instance
+			// because name template fail, the instance is no Name tag instance.
+			nr := &NameTagReplacement{
+				Symbol:   c.String(OPT_SYMBOL),
+				Sequence: strconv.Itoa(i + 1),
+			}
+
+			replacedNameTag, err := nr.StringWithTemplate(l.NameTagTemplate)
+			if err != nil {
+				log.Fatalf("error during replacing name tag template: %v", err)
+			}
+			debug(replacedNameTag)
+
+			res, err := launcher.Launch(cli, l.SubnetId, 1, c.Bool(OPT_DRYRUN))
+			if err != nil {
+				// TODO if dry run error then next.
+				log.Fatalf("error during starting instance: %s", err.Error())
+			}
+			debug(res)
+
+			nameTag := &ec2.Tag{
+				Key:   aws.String("Name"),
+				Value: aws.String(replacedNameTag),
+			}
+
+			for _, ins := range res.Instances {
+				tagp := &ec2.CreateTagsInput{
+					Resources: []*string{
+						ins.InstanceId,
+					},
+					// append returns new slice when over cap
+					Tags: append(tags, nameTag),
+				}
+
+				_, err := cli.CreateTags(tagp)
+				if err != nil {
+					log.Println(fmt.Sprintf("failed tagging so skipped %s: %v\n", ins.InstanceId, err))
+				}
+
+				output := &EC2RunOutput{
+					InstanceId: convertNilString(ins.InstanceId),
+					Name:       replacedNameTag,
+					PublicIp:   convertNilString(ins.PublicIpAddress),
+					PrivateIp:  convertNilString(ins.PrivateIpAddress),
+					Symbol:     nr.Symbol,
+					Sequence:   nr.Sequence,
+				}
+
+				outputTemplate := DEFAULT_OUTPUT_TEMPLATE
+				if l.OutputTemplate != "" {
+					outputTemplate = l.OutputTemplate
+				}
+
+				oString, err := output.StringWithTemplate(outputTemplate)
+				if err != nil {
+					log.Println(fmt.Sprintf("%s failed replacing output template: %v", ins.InstanceId, err))
+				}
+
+				fmt.Println(oString)
+			}
+		}
+	}
 }
 
 var (

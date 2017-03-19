@@ -33,6 +33,11 @@ const (
 	OPT_WITHOUT_RELEASE = "without-release"
 	OPT_REUSE           = "reuse"
 	OPT_MOVE            = "move"
+
+	OPT_AMI_ID   = "ami-id"
+	OPT_SYMBOL   = "symbol"
+	OPT_SKELETON = "skeleton"
+	OPT_DRYRUN   = "dry-run"
 )
 
 var silent bool

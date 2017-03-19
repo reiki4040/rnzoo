@@ -26,8 +26,8 @@ const (
 
        rnzoo ec2list -r ap-northeast-1
 
-       i-11111111	Name tag Web server1	stopped	t2.micro	54.X.X.X	10.Y.Y.Y
-       i-22222222	Name tag Web server2	running	m3.large	52.X.X.x	10.Y.Y.y
+	   i-11111111	Name tag Web server1	stopped	t2.micro	54.X.X.X	10.Y.Y.Y	xxxx:xxxx::xxxx
+	   i-22222222	Name tag Web server2	running	m3.large	52.X.X.x	10.Y.Y.y	xxxx:xxxx::yyyy
        ...
 
      you can set default region by AWS_REGION environment variable.

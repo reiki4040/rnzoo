@@ -135,7 +135,7 @@ var commandEc2type = cli.Command{
 
 var commandEc2run = cli.Command{
 	Name:        "ec2run",
-	Usage:       "run new ec2 isntances",
+	Usage:       "run new ec2 instances",
 	Description: EC2RUN_DESC,
 	Action:      doEc2run,
 	Flags: []cli.Flag{

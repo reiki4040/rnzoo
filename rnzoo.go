@@ -26,11 +26,11 @@ var CliFlags = []cli.Flag{
 
 var Commands = []cli.Command{
 	commandInit,
+	commandEc2run,
+	commandEc2list,
 	commandEc2start,
 	commandEc2stop,
-	commandEc2list,
 	commandEc2type,
-	commandEc2run,
 	commandAttachEIP,
 	commandDetachEIP,
 }

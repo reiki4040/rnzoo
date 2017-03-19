@@ -39,8 +39,9 @@ const (
 	OPT_SKELETON = "skeleton"
 	OPT_DRYRUN   = "dry-run"
 
-	OPT_EC2_ANY_STATE = "ec2-any-state"
-	OPT_EXECUTE       = "execute"
+	OPT_EC2_ANY_STATE   = "ec2-any-state"
+	OPT_EXECUTE         = "execute"
+	OPT_WITHOUT_CONFIRM = "without-confirm"
 )
 
 var silent bool

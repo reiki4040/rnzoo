@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"text/template"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -192,6 +194,10 @@ var commandEc2terminate = cli.Command{
 		cli.BoolFlag{
 			Name:  OPT_EXECUTE,
 			Usage: "execute ec2 terminate (default action is dryrun. if execute and dryrun options set in same time, then do dryrun)",
+		},
+		cli.BoolFlag{
+			Name:  OPT_WITHOUT_CONFIRM,
+			Usage: "without target instance confirming (default action is do confirming)",
 		},
 		cli.BoolFlag{
 			Name:  OPT_EC2_ANY_STATE,
@@ -768,9 +774,38 @@ func doEc2Terminate(c *cli.Context) {
 		ids = []*string{aws.String(instanceId)}
 	}
 
-	// TODO confirm ls
+	if len(ids) == 0 {
+		log.Fatalln("there is no instance id.")
+		return
+	}
 
 	cli := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
+
+	if !c.Bool(OPT_WITHOUT_CONFIRM) {
+		insts, err := myec2.GetInstancesFromId(cli, ids...)
+		if err != nil {
+			log.Fatalln("failed retrieve instance info for confirm.")
+			return
+		}
+
+		for _, ins := range insts {
+			name := "[no Name tag instance]"
+			for _, t := range ins.Tags {
+				if convertNilString(t.Key) == "Name" {
+					name = convertNilString(t.Value)
+					break
+				}
+			}
+
+			fmt.Printf("%s\t%s\t%s\n", convertNilString(ins.InstanceId), name, convertNilString(ins.PrivateIpAddress))
+		}
+
+		ans, err := confirm("you really want to terminate above instances?", false)
+		if !ans {
+			log.Fatalln("canceled instance termination.")
+			return
+		}
+	}
 
 	dryrun := true
 	if !c.Bool(OPT_DRYRUN) && c.Bool(OPT_EXECUTE) {
@@ -792,6 +827,34 @@ func doEc2Terminate(c *cli.Context) {
 		pState := convertNilString(status.PreviousState.Name)
 		cState := convertNilString(status.CurrentState.Name)
 		log.Printf("terminated %s: %s -> %s", id, pState, cState)
+	}
+}
+
+func confirm(msg string, defaultAns bool) (bool, error) {
+
+	if defaultAns {
+		fmt.Printf("%s[YES/no]:", msg)
+	} else {
+		fmt.Printf("%s[yes/NO]:", msg)
+	}
+
+	reader := bufio.NewReader(os.Stdin)
+
+	readAns, err := reader.ReadString('\n')
+	if err != nil {
+		return defaultAns, fmt.Errorf("input err:%s", err.Error())
+	}
+
+	inAns := strings.TrimRight(readAns, "\n")
+	if inAns == "" {
+		return defaultAns, nil
+	}
+
+	lAns := strings.ToLower(inAns)
+	if defaultAns {
+		return lAns == "no", nil
+	} else {
+		return lAns == "yes", nil
 	}
 }
 

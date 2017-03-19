@@ -450,6 +450,11 @@ func (d *Launcher) Launch(cli *ec2.EC2, subnetId string, count int, dryrun bool)
 		keyName = &d.KeyName
 	}
 
+	var ipv6count *int64
+	if d.Ipv6Enabled {
+		ipv6count = aws.Int64(1)
+	}
+
 	params := &ec2.RunInstancesInput{
 		ImageId:             aws.String(d.AmiId),
 		MaxCount:            aws.Int64(int64(count)),
@@ -483,6 +488,7 @@ func (d *Launcher) Launch(cli *ec2.EC2, subnetId string, count int, dryrun bool)
 				DeviceIndex:              aws.Int64(0),
 				SubnetId:                 aws.String(subnetId),
 				Groups:                   d.SecurityGroupIds,
+				Ipv6AddressCount:         ipv6count,
 			},
 		},
 		//	{ // Required

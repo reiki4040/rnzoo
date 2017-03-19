@@ -144,6 +144,10 @@ var commandEc2run = cli.Command{
 			Usage: "dry-run ec2 run.",
 		},
 		cli.StringFlag{
+			Name:  OPT_SKELETON,
+			Usage: "store skeleton config yaml to specified file path",
+		},
+		cli.StringFlag{
 			Name:  OPT_AMI_ID,
 			Usage: "overwrite run AMI ID.",
 		},
@@ -404,7 +408,6 @@ func doEc2type(c *cli.Context) {
 type EC2RunConfig struct {
 	Name            string `yaml:"name"`
 	AmiId           string `yaml:"ami_id"`
-	IamRoleArn      string `yaml:"iam_role_arn"`
 	IamRoleName     string `yaml:"iam_role_name"`
 	PublicIpEnabled bool   `yaml:"public_ip_enabled"`
 	Ipv6Enabled     bool   `yaml:"ipv6_enabled"`
@@ -527,8 +530,55 @@ func (o *EC2RunOutput) StringWithTemplate(templateString string) (string, error)
 	return replaced, nil
 }
 
+func StoreSkeletonEC2RunConfigYaml(filePath string) error {
+	s := EC2RunConfig{
+		Name:            "skeleton config example. please replace  properties for your case.",
+		AmiId:           "ami-xxxxxxx",
+		IamRoleName:     "your_iam_role_name",
+		PublicIpEnabled: false,
+		Ipv6Enabled:     false,
+		Type:            "t2.nano",
+		KeyPair:         "your_key_pair_name",
+		EbsOptimized:    false,
+		EbsDevices: []EC2RunEbs{
+			EC2RunEbs{
+				DeviceName:          "/dev/sdb",
+				DeleteOnTermination: false,
+				Encrypted:           true,
+				SizeGB:              8,
+				VolumeType:          "gp2",
+			},
+		},
+		Tags: []EC2RunConfigTag{
+			EC2RunConfigTag{
+				Key:   "sample_key",
+				Value: "sample_value",
+			},
+		},
+		SecurityGroupIds: []string{"sg-xxxxxxxx", "sg-yyyyyyyy"},
+		Launches: []EC2RunConfigLaunch{
+			EC2RunConfigLaunch{
+				NameTagTemplate: "instance {{.Symbol}} {{.Sequence}}",
+				SubnetId:        "subnet-xxxxxxxx",
+				OutputTemplate:  "run {{.InstanceId}}, {{.Name}} publicIp {{.PublicIp}}, PrivateIp {{.PrivateIp}}, {{.Symbol}} {{.Sequence}}",
+			},
+		},
+	}
+
+	return cstore.StoreToYamlFile(filePath, []EC2RunConfig{s})
+}
+
 func doEc2run(c *cli.Context) {
 	prepare(c)
+
+	if c.String(OPT_SKELETON) != "" {
+		err := StoreSkeletonEC2RunConfigYaml(c.String(OPT_SKELETON))
+		if err != nil {
+			log.Printf("can not store Skeleton config yaml: %v\n", err)
+		}
+
+		os.Exit(0)
+	}
 
 	region := c.String(OPT_REGION)
 	if region == "" {

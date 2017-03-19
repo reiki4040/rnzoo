@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"text/template"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -52,6 +54,14 @@ const (
 
 	EC2RUN_DESC = `
 	run EC2 instances with configuration yaml file.
+	`
+	EC2TERMINATE_DESC = `
+	terminate EC2 instances.
+
+	IMPORTANT: default action is dry run, please set --execute option when do termination.
+
+	default listing instances are only stopped instances.
+	if you want select in all state instances, please use --ec2-any-state option.
 	`
 	DEFAULT_OUTPUT_TEMPLATE = "{{.InstanceId}}\t{{.Name}}\t{{.PublicIp}}\t{{.PrivateIp}}"
 )
@@ -162,6 +172,36 @@ var commandEc2run = cli.Command{
 		cli.StringFlag{
 			Name:  OPT_SYMBOL,
 			Usage: "replace {{.Symbol}} in name tag",
+		},
+	},
+}
+
+var commandEc2terminate = cli.Command{
+	Name:        "ec2terminate",
+	ShortName:   "terminate",
+	Usage:       "terminate instances.",
+	Description: EC2TERMINATE_DESC,
+	Action:      doEc2Terminate,
+	Flags: []cli.Flag{
+		cli.StringFlag{
+			Name:  OPT_INSTANCE_ID,
+			Usage: "specify the instance id that you want termination.",
+		},
+		cli.BoolFlag{
+			Name:  OPT_DRYRUN,
+			Usage: "dry-run ec2 terminate.",
+		},
+		cli.BoolFlag{
+			Name:  OPT_EXECUTE,
+			Usage: "execute ec2 terminate (default action is dryrun. if execute and dryrun options set in same time, then do dryrun)",
+		},
+		cli.BoolFlag{
+			Name:  OPT_WITHOUT_CONFIRM,
+			Usage: "without target instance confirming (default action is do confirming)",
+		},
+		cli.BoolFlag{
+			Name:  OPT_EC2_ANY_STATE,
+			Usage: "selectable all state instances (default only stopped instances)",
 		},
 	},
 }
@@ -694,6 +734,127 @@ func doEc2run(c *cli.Context) {
 				fmt.Println(oString)
 			}
 		}
+	}
+}
+
+func doEc2Terminate(c *cli.Context) {
+	prepare(c)
+
+	region := c.String(OPT_REGION)
+	if region == "" {
+		// load config
+		c, err := GetDefaultConfig()
+		if err != nil {
+			log.Printf("can not load rnzoo config: %s\n", err.Error())
+		}
+
+		region = c.AWSRegion
+	}
+
+	instanceId := c.String(OPT_INSTANCE_ID)
+	var ids []*string
+	if instanceId == "" {
+
+		h, err := NewRnzooCStoreManager()
+		if err != nil {
+			log.Printf("can not load EC2: %s\n", err.Error())
+		}
+
+		fState := myec2.EC2_STATE_STOPPED
+		if c.Bool(OPT_EC2_ANY_STATE) {
+			fState = myec2.EC2_STATE_ANY
+		}
+		ids, err = h.ChooseEC2(region, fState, true)
+		if err != nil {
+			log.Fatalf("error during selecting: %s", err.Error())
+			return
+		}
+
+	} else {
+		ids = []*string{aws.String(instanceId)}
+	}
+
+	if len(ids) == 0 {
+		log.Fatalln("there is no instance id.")
+		return
+	}
+
+	cli := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
+
+	if !c.Bool(OPT_WITHOUT_CONFIRM) {
+		insts, err := myec2.GetInstancesFromId(cli, ids...)
+		if err != nil {
+			log.Fatalln("failed retrieve instance info for confirm.")
+			return
+		}
+
+		for _, ins := range insts {
+			name := "[no Name tag instance]"
+			for _, t := range ins.Tags {
+				if convertNilString(t.Key) == "Name" {
+					name = convertNilString(t.Value)
+					break
+				}
+			}
+
+			fmt.Printf("%s\t%s\t%s\n", convertNilString(ins.InstanceId), name, convertNilString(ins.PrivateIpAddress))
+		}
+
+		ans, err := confirm("you really want to terminate above instances?", false)
+		if !ans {
+			log.Fatalln("canceled instance termination.")
+			return
+		}
+	}
+
+	dryrun := true
+	if !c.Bool(OPT_DRYRUN) && c.Bool(OPT_EXECUTE) {
+		dryrun = false
+	}
+	params := &ec2.TerminateInstancesInput{
+		InstanceIds: ids,
+		DryRun:      aws.Bool(dryrun),
+	}
+
+	resp, err := cli.TerminateInstances(params)
+	if err != nil {
+		log.Fatalf("error during terminate instance: %v", err)
+		return
+	}
+
+	for _, status := range resp.TerminatingInstances {
+		id := convertNilString(status.InstanceId)
+		pState := convertNilString(status.PreviousState.Name)
+		cState := convertNilString(status.CurrentState.Name)
+		log.Printf("terminated %s: %s -> %s", id, pState, cState)
+	}
+}
+
+func confirm(msg string, defaultAns bool) (bool, error) {
+
+	if defaultAns {
+		fmt.Printf("%s[YES/no]:", msg)
+	} else {
+		fmt.Printf("%s[yes/NO]:", msg)
+	}
+
+	reader := bufio.NewReader(os.Stdin)
+
+	readAns, err := reader.ReadString('\n')
+	if err != nil {
+		return defaultAns, fmt.Errorf("input err:%s", err.Error())
+	}
+
+	inAns := strings.TrimRight(readAns, "\n")
+	if inAns == "" {
+		return defaultAns, nil
+	}
+
+	lAns := strings.ToLower(inAns)
+	if defaultAns {
+		return lAns == "no", nil
+	} else {
+		return lAns == "yes", nil
 	}
 }
 

@@ -211,6 +211,30 @@ func GetInstances(region string) ([]*ec2.Instance, error) {
 	return instances, nil
 }
 
+func GetInstancesFromId(cli *ec2.EC2, ids ...*string) ([]*ec2.Instance, error) {
+	param := &ec2.DescribeInstancesInput{
+		InstanceIds: ids,
+	}
+
+	resp, err := cli.DescribeInstances(param)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(resp.Reservations) == 0 {
+		return []*ec2.Instance{}, nil
+	}
+
+	instances := make([]*ec2.Instance, 0)
+	for _, r := range resp.Reservations {
+		for _, i := range r.Instances {
+			instances = append(instances, i)
+		}
+	}
+
+	return instances, nil
+}
+
 type ChoosableEIP struct {
 	AllocationId string
 	AssociateId  string

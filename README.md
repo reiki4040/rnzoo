@@ -56,11 +56,11 @@ rnzoo init
 | sub command | description |
 |-------------|-------------|
 | init | start rnzoo config wizard |
-| ec2start | start ec2 instances (it already created, not launch) |
-| ec2stop | stop ec2 instances |
-| ec2list | listing ec2 instances |
-| ec2type | modify ec2 instance type |
-| ec2run | run new ec2 instances |
+| ec2run, run | run new ec2 instances |
+| ec2list, ls | listing ec2 instances |
+| ec2start, start | start ec2 instances (it already created, not launch) |
+| ec2stop, stop | stop ec2 instances |
+| ec2type, type | modify ec2 instance type |
 | attach-eip | allocate new EIP(allow reassociate) and associate it to the instance |
 | detach-eip | disassociate EIP and release it |
 

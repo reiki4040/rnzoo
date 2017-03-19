@@ -88,6 +88,7 @@ var commandEc2list = cli.Command{
 
 var commandEc2start = cli.Command{
 	Name:        "ec2start",
+	ShortName:   "start",
 	Usage:       "start ec2",
 	Description: `start ec2 that already exists.`,
 	Action:      doEc2start,
@@ -101,6 +102,7 @@ var commandEc2start = cli.Command{
 
 var commandEc2stop = cli.Command{
 	Name:        "ec2stop",
+	ShortName:   "stop",
 	Usage:       "stop ec2",
 	Description: `stop ec2 that already running.`,
 	Action:      doEc2stop,
@@ -114,6 +116,7 @@ var commandEc2stop = cli.Command{
 
 var commandEc2type = cli.Command{
 	Name:        "ec2type",
+	ShortName:   "type",
 	Usage:       "modify ec2 isntance type",
 	Description: EC2TYPE_DESC,
 	Action:      doEc2type,
@@ -135,6 +138,7 @@ var commandEc2type = cli.Command{
 
 var commandEc2run = cli.Command{
 	Name:        "ec2run",
+	ShortName:   "run",
 	Usage:       "run new ec2 instances",
 	Description: EC2RUN_DESC,
 	Action:      doEc2run,

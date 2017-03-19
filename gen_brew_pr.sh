@@ -47,7 +47,9 @@ function main() {
     cat rnzoo.rb | sed -e "s/version \".*\"/version \"${v}\"/" | sed -e "s/normal_sha256 = \".*\"/normal_sha256 = \"${s256}\"/" > rnzoo.rb.new
   else
     # replace devel_version and sha256
-    cat rnzoo.rb | sed -e "s/devel_version = \".*\"/devel_version = \"${ver}\"/" | sed -e "s/devel_sha256 = \".*\"/devel_sha256 = \"${s256}\"/" > rnzoo.rb.new
+    # version format is not allow v prefix (NG: v0.1.0-dev1, OK: 0.1.0-dev1)
+    v=${ver/v/}
+    cat rnzoo.rb | sed -e "s/devel_version = \".*\"/devel_version = \"${v}\"/" | sed -e "s/devel_sha256 = \".*\"/devel_sha256 = \"${s256}\"/" > rnzoo.rb.new
   fi
 
   mv rnzoo.rb.new rnzoo.rb

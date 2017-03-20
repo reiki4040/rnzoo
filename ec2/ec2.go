@@ -39,13 +39,14 @@ type ChoosableEC2 struct {
 	InstanceType string
 	PublicIP     string
 	PrivateIP    string
+	IPv6         string
 }
 
 func (e *ChoosableEC2) Choice() string {
 	w := new(tabwriter.Writer)
 	var b bytes.Buffer
 	w.Init(&b, 18, 0, 4, ' ', 0)
-	fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s", e.InstanceId, e.Name, e.Status, e.InstanceType, e.PublicIP, e.PrivateIP)
+	fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s", e.InstanceId, e.Name, e.Status, e.InstanceType, e.PublicIP, e.PrivateIP, e.IPv6)
 	w.Flush()
 	return string(b.Bytes())
 }
@@ -55,7 +56,7 @@ func (e *ChoosableEC2) Value() string {
 }
 
 func (e *ChoosableEC2) String() string {
-	items := []string{e.InstanceId, e.Name, e.Status, e.InstanceType, e.PublicIP, e.PrivateIP}
+	items := []string{e.InstanceId, e.Name, e.Status, e.InstanceType, e.PublicIP, e.PrivateIP, e.IPv6}
 	return strings.Join(items, "\t")
 }
 
@@ -176,6 +177,15 @@ func convertChoosable(i *ec2.Instance) *ChoosableEC2 {
 		}
 	}
 
+	ipv6 := ""
+	for _, ni := range i.NetworkInterfaces {
+		for _, v6addr := range ni.Ipv6Addresses {
+			if v6 := convertNilString(v6addr.Ipv6Address); v6 != "" {
+				ipv6 = v6
+				break
+			}
+		}
+	}
 	ins := *i
 	c := &ChoosableEC2{
 		InstanceId:   convertNilString(ins.InstanceId),
@@ -184,6 +194,7 @@ func convertChoosable(i *ec2.Instance) *ChoosableEC2 {
 		InstanceType: convertNilString(ins.InstanceType),
 		PublicIP:     convertNilString(ins.PublicIpAddress),
 		PrivateIP:    convertNilString(ins.PrivateIpAddress),
+		IPv6:         ipv6,
 	}
 
 	return c
@@ -450,6 +461,11 @@ func (d *Launcher) Launch(cli *ec2.EC2, subnetId string, count int, dryrun bool)
 		keyName = &d.KeyName
 	}
 
+	var ipv6count *int64
+	if d.Ipv6Enabled {
+		ipv6count = aws.Int64(1)
+	}
+
 	params := &ec2.RunInstancesInput{
 		ImageId:             aws.String(d.AmiId),
 		MaxCount:            aws.Int64(int64(count)),
@@ -483,6 +499,7 @@ func (d *Launcher) Launch(cli *ec2.EC2, subnetId string, count int, dryrun bool)
 				DeviceIndex:              aws.Int64(0),
 				SubnetId:                 aws.String(subnetId),
 				Groups:                   d.SecurityGroupIds,
+				Ipv6AddressCount:         ipv6count,
 			},
 		},
 		//	{ // Required

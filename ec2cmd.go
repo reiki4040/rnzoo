@@ -107,6 +107,10 @@ var commandEc2start = cli.Command{
 			Name:  OPT_INSTANCE_ID,
 			Usage: "specify start instance id.",
 		},
+		cli.BoolFlag{
+			Name:  OPT_CONFIRM,
+			Usage: "confirm target instances before action.",
+		},
 	},
 }
 
@@ -120,6 +124,10 @@ var commandEc2stop = cli.Command{
 		cli.StringFlag{
 			Name:  OPT_INSTANCE_ID,
 			Usage: "specify stop instance id.",
+		},
+		cli.BoolFlag{
+			Name:  OPT_CONFIRM,
+			Usage: "confirm target instances before action.",
 		},
 	},
 }
@@ -142,6 +150,10 @@ var commandEc2type = cli.Command{
 		cli.BoolFlag{
 			Name:  OPT_START,
 			Usage: "start the instance after modifying type.",
+		},
+		cli.BoolFlag{
+			Name:  OPT_CONFIRM,
+			Usage: "confirm target instances before action.",
 		},
 	},
 }
@@ -281,7 +293,39 @@ func doEc2start(c *cli.Context) {
 		ids = []*string{aws.String(instanceId)}
 	}
 
-	resp, err := startInstances(region, ids)
+	cli := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
+
+	if c.Bool(OPT_CONFIRM) {
+		insts, err := myec2.GetInstancesFromId(cli, ids...)
+		if err != nil {
+			log.Fatalln("failed retrieve instance info for confirm.")
+			return
+		}
+
+		for _, ins := range insts {
+			name := "[no Name tag instance]"
+			for _, t := range ins.Tags {
+				if convertNilString(t.Key) == "Name" {
+					name = convertNilString(t.Value)
+					break
+				}
+			}
+
+			fmt.Printf("%s\t%s\t%s\n", convertNilString(ins.InstanceId), name, convertNilString(ins.PrivateIpAddress))
+		}
+
+		ans, err := confirm("start above instances?", false)
+		if !ans {
+			log.Fatalln("canceled instance start action.")
+			return
+		}
+	}
+
+	params := &ec2.StartInstancesInput{
+		InstanceIds: ids,
+	}
+
+	resp, err := cli.StartInstances(params)
 	if err != nil {
 		log.Fatalf("error during launching: %s", err.Error())
 		return
@@ -293,18 +337,6 @@ func doEc2start(c *cli.Context) {
 		cState := convertNilString(status.CurrentState.Name)
 		log.Printf("launched %s: %s -> %s", id, pState, cState)
 	}
-
-	log.Printf("finished launching.")
-}
-
-func startInstances(region string, ids []*string) (*ec2.StartInstancesOutput, error) {
-	cli := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
-
-	params := &ec2.StartInstancesInput{
-		InstanceIds: ids,
-	}
-
-	return cli.StartInstances(params)
 }
 
 func doEc2stop(c *cli.Context) {
@@ -342,6 +374,32 @@ func doEc2stop(c *cli.Context) {
 
 	cli := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
 
+	if c.Bool(OPT_CONFIRM) {
+		insts, err := myec2.GetInstancesFromId(cli, ids...)
+		if err != nil {
+			log.Fatalln("failed retrieve instance info for confirm.")
+			return
+		}
+
+		for _, ins := range insts {
+			name := "[no Name tag instance]"
+			for _, t := range ins.Tags {
+				if convertNilString(t.Key) == "Name" {
+					name = convertNilString(t.Value)
+					break
+				}
+			}
+
+			fmt.Printf("%s\t%s\t%s\n", convertNilString(ins.InstanceId), name, convertNilString(ins.PrivateIpAddress))
+		}
+
+		ans, err := confirm("stop above instances?", false)
+		if !ans {
+			log.Fatalln("canceled instance stop action.")
+			return
+		}
+	}
+
 	params := &ec2.StopInstancesInput{
 		InstanceIds: ids,
 	}
@@ -358,8 +416,6 @@ func doEc2stop(c *cli.Context) {
 		cState := convertNilString(status.CurrentState.Name)
 		log.Printf("stopped %s: %s -> %s", id, pState, cState)
 	}
-
-	log.Printf("finished stopping.")
 }
 
 func doEc2type(c *cli.Context) {
@@ -413,6 +469,32 @@ func doEc2type(c *cli.Context) {
 
 	cli := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
 
+	if c.Bool(OPT_CONFIRM) {
+		insts, err := myec2.GetInstancesFromId(cli, ids...)
+		if err != nil {
+			log.Fatalln("failed retrieve instance info for confirm.")
+			return
+		}
+
+		for _, ins := range insts {
+			name := "[no Name tag instance]"
+			for _, t := range ins.Tags {
+				if convertNilString(t.Key) == "Name" {
+					name = convertNilString(t.Value)
+					break
+				}
+			}
+
+			fmt.Printf("%s\t%s\t%s\t%s\n", convertNilString(ins.InstanceId), name, convertNilString(ins.InstanceType), convertNilString(ins.PrivateIpAddress))
+		}
+
+		ans, err := confirm("modified above instance type to "+iType+"?", false)
+		if !ans {
+			log.Fatalln("canceled instance type change action.")
+			return
+		}
+	}
+
 	for _, i := range ids {
 		params := &ec2.ModifyInstanceAttributeInput{
 			InstanceId: i,
@@ -431,7 +513,11 @@ func doEc2type(c *cli.Context) {
 		log.Printf("%s is modified the instance type to %s", *i, iType)
 
 		if c.Bool(OPT_START) {
-			resp, err := startInstances(region, []*string{i})
+			params := &ec2.StartInstancesInput{
+				InstanceIds: []*string{i},
+			}
+
+			resp, err := cli.StartInstances(params)
 			if err != nil {
 				log.Fatalf("error during starting instance: %s", err.Error())
 				return
@@ -445,8 +531,6 @@ func doEc2type(c *cli.Context) {
 			}
 		}
 	}
-
-	log.Printf("finished modifying instance type.")
 }
 
 type EC2RunConfig struct {

@@ -971,7 +971,20 @@ var commandAttachEIP = cli.Command{
 		},
 		cli.BoolFlag{
 			Name:  OPT_MOVE,
-			Usage: "move EIP to the instance from the other instance.",
+			Usage: "this option was replaced. please use move-eip subcommand.",
+		},
+	},
+}
+
+var commandMoveEIP = cli.Command{
+	Name:        "move-eip",
+	Usage:       "reallocate EIP(allow reassociate) to other instance.",
+	Description: "reallocate EIP(allow reassociate) to other instance.",
+	Action:      doMoveEIP,
+	Flags: []cli.Flag{
+		cli.BoolFlag{
+			Name:  OPT_WITHOUT_CONFIRM,
+			Usage: "without confirm target before action (default action is do confirming)",
 		},
 	},
 }
@@ -993,7 +1006,16 @@ var commandDetachEIP = cli.Command{
 	},
 }
 
-func doMoveEIP(region string) {
+func doMoveEIP(c *cli.Context) {
+	prepare(c)
+
+	// load config
+	config, err := GetDefaultConfig()
+	if err != nil {
+		log.Printf("can not load rnzoo config: %s\n", err.Error())
+	}
+	region := config.AWSRegion
+
 	// EIP listing
 	allocIds, err := myec2.ChooseEIP(region)
 
@@ -1024,6 +1046,38 @@ func doMoveEIP(region string) {
 	// moving
 	cli := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
 
+	if !c.Bool(OPT_WITHOUT_CONFIRM) {
+		insts, err := myec2.GetInstancesFromId(cli, &instanceId)
+		if err != nil {
+			log.Fatalln("failed retrieve instance info for confirm.")
+			return
+		}
+
+		if len(insts) != 1 {
+			log.Fatalln("the selected from instance was deleted? please retry.")
+			return
+		}
+
+		name := "[no Name tag instance]"
+		for _, t := range insts[0].Tags {
+			if convertNilString(t.Key) == "Name" {
+				name = convertNilString(t.Value)
+				break
+			}
+		}
+
+		eip := allocIds[0].PublicIP
+		from := allocIds[0].Name
+		to := name
+		fmt.Printf("%s '%s' -> '%s'\n", eip, from, to)
+
+		ans, err := confirm("move above EIP?", false)
+		if !ans {
+			log.Fatalln("canceled move EIP action.")
+			return
+		}
+	}
+
 	assocId, err := myec2.AssociateEIP(cli, allocIds[0].AllocationId, instanceId)
 	if err != nil {
 		log.Fatalf("error during moving EIP: %s", err.Error())
@@ -1043,10 +1097,8 @@ func doAttachEIP(c *cli.Context) {
 	}
 	region := config.AWSRegion
 
-	moving := c.Bool(OPT_MOVE)
-	if moving {
-		doMoveEIP(region)
-		os.Exit(0)
+	if c.Bool(OPT_MOVE) {
+		log.Fatalln("this option was replaced. please use move-eip subcommand.")
 	}
 
 	instanceId := c.String(OPT_INSTANCE_ID)

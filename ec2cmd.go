@@ -1003,6 +1003,10 @@ var commandDetachEIP = cli.Command{
 			Name:  OPT_WITHOUT_RELEASE,
 			Usage: "does not release disassociated the address.",
 		},
+		cli.BoolFlag{
+			Name:  OPT_WITHOUT_CONFIRM,
+			Usage: "without confirm target before action (default action is do confirming)",
+		},
 	},
 }
 
@@ -1205,6 +1209,35 @@ func doDetachEIP(c *cli.Context) {
 	address, err := myec2.GetEIPFromInstance(cli, instanceId)
 	if err != nil {
 		log.Fatalf(err.Error())
+	}
+
+	if !c.Bool(OPT_WITHOUT_CONFIRM) {
+		insts, err := myec2.GetInstancesFromId(cli, &instanceId)
+		if err != nil {
+			log.Fatalln("failed retrieve instance info for confirm.")
+			return
+		}
+
+		if len(insts) != 1 {
+			log.Fatalln("the selected from instance was deleted? please retry.")
+			return
+		}
+
+		name := "[no Name tag instance]"
+		for _, t := range insts[0].Tags {
+			if convertNilString(t.Key) == "Name" {
+				name = convertNilString(t.Value)
+				break
+			}
+		}
+
+		fmt.Printf("%s\t%s\n", name, convertNilString(address.PublicIp))
+
+		ans, err := confirm("you really want to detach above EIP?", false)
+		if !ans {
+			log.Fatalln("canceled detach EIP action.")
+			return
+		}
 	}
 
 	associationId := convertNilString(address.AssociationId)

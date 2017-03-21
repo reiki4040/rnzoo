@@ -33,6 +33,7 @@ var Commands = []cli.Command{
 	commandEc2type,
 	commandEc2terminate,
 	commandAttachEIP,
+	commandMoveEIP,
 	commandDetachEIP,
 }
 

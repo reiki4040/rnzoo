@@ -121,6 +121,10 @@ var commandEc2stop = cli.Command{
 			Name:  OPT_INSTANCE_ID,
 			Usage: "specify stop instance id.",
 		},
+		cli.BoolFlag{
+			Name:  OPT_CONFIRM,
+			Usage: "confirm target instances before stop action.",
+		},
 	},
 }
 
@@ -342,6 +346,32 @@ func doEc2stop(c *cli.Context) {
 
 	cli := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
 
+	if c.Bool(OPT_CONFIRM) {
+		insts, err := myec2.GetInstancesFromId(cli, ids...)
+		if err != nil {
+			log.Fatalln("failed retrieve instance info for confirm.")
+			return
+		}
+
+		for _, ins := range insts {
+			name := "[no Name tag instance]"
+			for _, t := range ins.Tags {
+				if convertNilString(t.Key) == "Name" {
+					name = convertNilString(t.Value)
+					break
+				}
+			}
+
+			fmt.Printf("%s\t%s\t%s\n", convertNilString(ins.InstanceId), name, convertNilString(ins.PrivateIpAddress))
+		}
+
+		ans, err := confirm("stop above instances?", false)
+		if !ans {
+			log.Fatalln("canceled instance stop action.")
+			return
+		}
+	}
+
 	params := &ec2.StopInstancesInput{
 		InstanceIds: ids,
 	}
@@ -358,8 +388,6 @@ func doEc2stop(c *cli.Context) {
 		cState := convertNilString(status.CurrentState.Name)
 		log.Printf("stopped %s: %s -> %s", id, pState, cState)
 	}
-
-	log.Printf("finished stopping.")
 }
 
 func doEc2type(c *cli.Context) {

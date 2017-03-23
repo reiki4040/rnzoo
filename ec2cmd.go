@@ -48,7 +48,7 @@ const (
 	EC2LIST_TSV          = `output with tab separate format (TSV)`
 
 	EC2TYPE_DESC = `
-	modify EC2 isntacne type. the instance must be already stopped.
+	modify EC2 instacne type. the instance must be already stopped.
 	the max of type in selection list are t2, c4, m4, r4 series's large size.
 	if you want other types, please use -t, --type option.`
 
@@ -135,7 +135,7 @@ var commandEc2stop = cli.Command{
 var commandEc2type = cli.Command{
 	Name:        "ec2type",
 	ShortName:   "type",
-	Usage:       "modify ec2 isntance type",
+	Usage:       "modify ec2 instance type",
 	Description: EC2TYPE_DESC,
 	Action:      doEc2type,
 	Flags: []cli.Flag{

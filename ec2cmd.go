@@ -571,7 +571,7 @@ type EC2RunConfigLaunch struct {
 func (c *EC2RunConfig) genLauncher() *myec2.Launcher {
 	sgIds := make([]*string, 0, len(c.SecurityGroupIds))
 	for _, sgId := range c.SecurityGroupIds {
-		sgIds = append(sgIds, &sgId)
+		sgIds = append(sgIds, aws.String(sgId))
 	}
 
 	var roleName *string

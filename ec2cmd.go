@@ -126,8 +126,8 @@ var commandEc2stop = cli.Command{
 			Usage: "specify stop instance id.",
 		},
 		cli.BoolFlag{
-			Name:  OPT_CONFIRM,
-			Usage: "confirm target instances before action.",
+			Name:  OPT_WITHOUT_CONFIRM,
+			Usage: "without target instance confirming (default action is do confirming)",
 		},
 	},
 }
@@ -374,7 +374,7 @@ func doEc2stop(c *cli.Context) {
 
 	cli := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
 
-	if c.Bool(OPT_CONFIRM) {
+	if !c.Bool(OPT_WITHOUT_CONFIRM) {
 		insts, err := myec2.GetInstancesFromId(cli, ids...)
 		if err != nil {
 			log.Fatalln("failed retrieve instance info for confirm.")

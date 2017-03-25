@@ -35,6 +35,7 @@ var Commands = []cli.Command{
 	commandAttachEIP,
 	commandMoveEIP,
 	commandDetachEIP,
+	commandGetBilling,
 }
 
 func main() {

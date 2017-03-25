@@ -68,6 +68,7 @@ rnzoo init
 | attach-eip | allocate new EIP(allow reassociate) and associate it to the instance |
 | move-eip | reallocate EIP(allow reassociate) to other instance |
 | detach-eip | disassociate EIP and release it |
+| billing-price, price | show Billing price that got from AWS/Billing CloudWatch |
 
 ## Copyright and LICENSE
 

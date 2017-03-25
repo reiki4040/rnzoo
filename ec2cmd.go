@@ -1260,6 +1260,27 @@ func doDetachEIP(c *cli.Context) {
 	}
 }
 
+// cloudwatch
+var commandGetBilling = cli.Command{
+	Name:        "billing-price",
+	ShortName:   "price",
+	Usage:       "show billing price EstimatedCharges (CAUTION: NOT real time)",
+	Description: `the billing price is get from CloudWatch AWS/Billing.`,
+	Action:      doShowBilling,
+	Flags:       []cli.Flag{},
+}
+
+func doShowBilling(c *cli.Context) {
+	prepare(c)
+
+	b, err := GetBillingEstimatedCharges()
+	if err != nil {
+		log.Fatalf("failed get billing price: %v", err)
+	}
+
+	log.Printf("%s %.2f USD\n", b.Label, b.Price)
+}
+
 func NewCStoreManager() (*cstore.Manager, error) {
 	dirPath := GetRnzooDir()
 	return cstore.NewManager("rnzoo", dirPath)

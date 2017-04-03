@@ -553,7 +553,7 @@ type EC2RunConfig struct {
 type EC2RunEbs struct {
 	DeviceName          string `yaml:"device_name"`
 	DeleteOnTermination bool   `yaml:"delete_on_termination"`
-	Encrypted           bool   `yaml:"encrypted"`
+	Encrypted           *bool  `yaml:"encrypted"`
 	SizeGB              int64  `yaml:"size_gb"`
 	VolumeType          string `yaml:"volume_type"`
 }
@@ -659,6 +659,7 @@ func (o *EC2RunOutput) StringWithTemplate(templateString string) (string, error)
 }
 
 func StoreSkeletonEC2RunConfigYaml(filePath string) error {
+	encrypted := true
 	s := EC2RunConfig{
 		Name:            "skeleton config example. please replace  properties for your case.",
 		AmiId:           "ami-xxxxxxx",
@@ -672,7 +673,7 @@ func StoreSkeletonEC2RunConfigYaml(filePath string) error {
 			EC2RunEbs{
 				DeviceName:          "/dev/sdb",
 				DeleteOnTermination: false,
-				Encrypted:           true,
+				Encrypted:           &encrypted,
 				SizeGB:              8,
 				VolumeType:          "gp2",
 			},

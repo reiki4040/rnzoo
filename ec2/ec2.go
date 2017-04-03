@@ -425,10 +425,12 @@ type Launcher struct {
 	EbsOptimized     bool
 }
 
+// why encrypted use *bool?
+// for modify root device volume size. cannot specify encrypted root device
 type Ebs struct {
 	DeviceName          string
 	DeleteOnTermination bool
-	Encrypted           bool
+	Encrypted           *bool
 	SizeGB              int64
 	VolumeType          string
 }
@@ -442,7 +444,7 @@ func (d *Launcher) Launch(cli *ec2.EC2, subnetId string, count int, dryrun bool)
 				DeviceName: aws.String(ebs.DeviceName),
 				Ebs: &ec2.EbsBlockDevice{
 					DeleteOnTermination: aws.Bool(ebs.DeleteOnTermination),
-					Encrypted:           aws.Bool(ebs.Encrypted),
+					Encrypted:           ebs.Encrypted,
 					//Iops:                aws.Int64(100),
 					//SnapshotId:          aws.String("String"),
 					VolumeSize: aws.Int64(ebs.SizeGB),

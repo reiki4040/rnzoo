@@ -688,7 +688,7 @@ func StoreSkeletonEC2RunConfigYaml(filePath string) error {
 			EC2RunConfigLaunch{
 				NameTagTemplate: "instance {{.Symbol}} {{.Sequence}}",
 				SubnetId:        "subnet-xxxxxxxx",
-				OutputTemplate:  "run {{.InstanceId}}, {{.Name}} publicIp {{.PublicIp}}, PrivateIp {{.PrivateIp}}, {{.Symbol}} {{.Sequence}}",
+				OutputTemplate:  "{{.InstanceId}},{{.Name}},{{.PublicIp}},{{.Symbol}},{{.Sequence}}",
 			},
 		},
 	}

@@ -18,22 +18,30 @@ var CliFlags = []cli.Flag{
 		Name:  OPT_SILENT,
 		Usage: "if you want do not output messages.",
 	},
+	cli.BoolFlag{
+		Name:  OPT_VERBOSE,
+		Usage: "if you want show debug messages.",
+	},
 }
 
 var Commands = []cli.Command{
 	commandInit,
+	commandEc2run,
+	commandEc2list,
 	commandEc2start,
 	commandEc2stop,
-	commandEc2list,
 	commandEc2type,
+	commandEc2terminate,
 	commandAttachEIP,
+	commandMoveEIP,
 	commandDetachEIP,
+	commandGetBilling,
 }
 
 func main() {
 	app := cli.NewApp()
 	app.Name = "rnzoo"
-	app.Version = version + " (" + hash + ") built with:" + goversion
+	app.Version = version + " (" + hash + ") " + goversion
 	app.Usage = "useful commands for ec2."
 	app.Author = "reiki4040"
 	app.Email = ""

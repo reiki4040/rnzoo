@@ -19,6 +19,9 @@ rnzoo is useful cli to use ec2.
 ```
 brew tap reiki4040/rnzoo
 brew install rnzoo
+
+# if you want use development version, then --devel option.
+brew install --devel rnzoo
 ```
 
 ## Settings
@@ -56,11 +59,16 @@ rnzoo init
 | sub command | description |
 |-------------|-------------|
 | init | start rnzoo config wizard |
-| ec2start | start ec2 instances (it already created, not launch) |
-| ec2stop | stop ec2 instances |
-| ec2list | listing ec2 instances |
+| ec2run, run | run new ec2 instances |
+| ec2list, ls | listing ec2 instances |
+| ec2start, start | start ec2 instances (it already created, not launch) |
+| ec2stop, stop | stop ec2 instances |
+| ec2type, type | modify ec2 instance type |
+| ec2terminate, terminate | terminate ec2 instances |
 | attach-eip | allocate new EIP(allow reassociate) and associate it to the instance |
+| move-eip | reallocate EIP(allow reassociate) to other instance |
 | detach-eip | disassociate EIP and release it |
+| billing-price, price | show Billing price that got from AWS/Billing CloudWatch |
 
 ## Copyright and LICENSE
 

@@ -4,6 +4,8 @@ import (
 	"errors"
 	"log"
 	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/codegangsta/cli"
@@ -12,6 +14,7 @@ import (
 const (
 	ENV_AWS_REGION = "AWS_REGION"
 	ENV_HOME       = "HOME"
+	ENV_HOME_WIN   = "APPDATA"
 
 	RNZOO_DIR_NAME = ".rnzoo"
 
@@ -98,7 +101,12 @@ func validateInstanceId(id string) error {
 }
 
 func GetRnzooDir() string {
-	rnzooDir := os.Getenv(ENV_HOME) + string(os.PathSeparator) + RNZOO_DIR_NAME
+	home := os.Getenv(ENV_HOME)
+	if home == "" && runtime.GOOS == "windows" {
+		home = os.Getenv(ENV_HOME_WIN)
+	}
+
+	rnzooDir := filepath.Join(home, RNZOO_DIR_NAME)
 	return rnzooDir
 }
 

@@ -104,6 +104,10 @@ var commandEc2start = cli.Command{
 	Action:      doEc2start,
 	Flags: []cli.Flag{
 		cli.StringFlag{
+			Name:  OPT_REGION + ", r",
+			Usage: EC2LIST_REGION_USAGE,
+		},
+		cli.StringFlag{
 			Name:  OPT_INSTANCE_ID,
 			Usage: "specify start instance id.",
 		},
@@ -122,6 +126,10 @@ var commandEc2stop = cli.Command{
 	Action:      doEc2stop,
 	Flags: []cli.Flag{
 		cli.StringFlag{
+			Name:  OPT_REGION + ", r",
+			Usage: EC2LIST_REGION_USAGE,
+		},
+		cli.StringFlag{
 			Name:  OPT_INSTANCE_ID,
 			Usage: "specify stop instance id.",
 		},
@@ -139,6 +147,10 @@ var commandEc2type = cli.Command{
 	Description: EC2TYPE_DESC,
 	Action:      doEc2type,
 	Flags: []cli.Flag{
+		cli.StringFlag{
+			Name:  OPT_REGION + ", r",
+			Usage: EC2LIST_REGION_USAGE,
+		},
 		cli.StringFlag{
 			Name:  OPT_INSTANCE_ID,
 			Usage: "specify already stopped instance id.",
@@ -174,6 +186,10 @@ var commandEc2run = cli.Command{
 			Usage: "store skeleton config yaml to specified file path",
 		},
 		cli.StringFlag{
+			Name:  OPT_REGION + ", r",
+			Usage: EC2LIST_REGION_USAGE,
+		},
+		cli.StringFlag{
 			Name:  OPT_AMI_ID,
 			Usage: "overwrite run AMI ID.",
 		},
@@ -195,6 +211,10 @@ var commandEc2terminate = cli.Command{
 	Description: EC2TERMINATE_DESC,
 	Action:      doEc2Terminate,
 	Flags: []cli.Flag{
+		cli.StringFlag{
+			Name:  OPT_REGION + ", r",
+			Usage: EC2LIST_REGION_USAGE,
+		},
 		cli.StringFlag{
 			Name:  OPT_INSTANCE_ID,
 			Usage: "specify the instance id that you want termination.",
@@ -218,25 +238,41 @@ var commandEc2terminate = cli.Command{
 	},
 }
 
+func getRegion(c *cli.Context) (string, error) {
+	region := c.String(OPT_REGION)
+	if region != "" {
+		return region, nil
+	}
+
+	region = os.Getenv(ENV_AWS_REGION)
+	if region != "" {
+		return region, nil
+	}
+
+	// load config
+	config, err := GetDefaultConfig()
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return "", fmt.Errorf("can not load rnzoo config: %v", err)
+		}
+	} else {
+		if config.AWSRegion != "" {
+			return config.AWSRegion, nil
+		}
+	}
+
+	return "", fmt.Errorf("did not specified region, please set region with -r option or AWS_REGION environment variable or 'rnzoo init'")
+}
+
 func doEc2list(c *cli.Context) {
 	isReload := c.Bool(OPT_FORCE)
 
-	region := c.String(OPT_REGION)
-	if region == "" {
-		// load config
-		c, err := GetDefaultConfig()
-		if err != nil {
-			log.Printf("can not load rnzoo config: %s\n", err.Error())
-		}
-
-		region = c.AWSRegion
+	region, err := getRegion(c)
+	if err != nil {
+		log.Fatalln(err)
 	}
 
-	if region == "" {
-		log.Fatalf("please set region.")
-	}
-
-	err := CreateRnzooDir()
+	err = CreateRnzooDir()
 	if err != nil {
 		log.Printf("can not create rnzoo dir: %s\n", err.Error())
 	}
@@ -263,15 +299,9 @@ func doEc2list(c *cli.Context) {
 func doEc2start(c *cli.Context) {
 	prepare(c)
 
-	region := c.String(OPT_REGION)
-	if region == "" {
-		// load config
-		c, err := GetDefaultConfig()
-		if err != nil {
-			log.Printf("can not load rnzoo config: %s\n", err.Error())
-		}
-
-		region = c.AWSRegion
+	region, err := getRegion(c)
+	if err != nil {
+		log.Fatalln(err)
 	}
 
 	instanceId := c.String(OPT_INSTANCE_ID)
@@ -342,15 +372,9 @@ func doEc2start(c *cli.Context) {
 func doEc2stop(c *cli.Context) {
 	prepare(c)
 
-	region := c.String(OPT_REGION)
-	if region == "" {
-		// load config
-		c, err := GetDefaultConfig()
-		if err != nil {
-			log.Printf("can not load rnzoo config: %s\n", err.Error())
-		}
-
-		region = c.AWSRegion
+	region, err := getRegion(c)
+	if err != nil {
+		log.Fatalln(err)
 	}
 
 	instanceId := c.String(OPT_INSTANCE_ID)
@@ -421,15 +445,9 @@ func doEc2stop(c *cli.Context) {
 func doEc2type(c *cli.Context) {
 	prepare(c)
 
-	region := c.String(OPT_REGION)
-	if region == "" {
-		// load config
-		c, err := GetDefaultConfig()
-		if err != nil {
-			log.Printf("can not load rnzoo config: %s\n", err.Error())
-		}
-
-		region = c.AWSRegion
+	region, err := getRegion(c)
+	if err != nil {
+		log.Fatalln(err)
 	}
 
 	instanceId := c.String(OPT_INSTANCE_ID)
@@ -709,15 +727,9 @@ func doEc2run(c *cli.Context) {
 		os.Exit(0)
 	}
 
-	region := c.String(OPT_REGION)
-	if region == "" {
-		// load config
-		c, err := GetDefaultConfig()
-		if err != nil {
-			log.Printf("can not load rnzoo config: %s\n", err.Error())
-		}
-
-		region = c.AWSRegion
+	region, err := getRegion(c)
+	if err != nil {
+		log.Fatalln(err)
 	}
 
 	args := c.Args()
@@ -825,15 +837,9 @@ func doEc2run(c *cli.Context) {
 func doEc2Terminate(c *cli.Context) {
 	prepare(c)
 
-	region := c.String(OPT_REGION)
-	if region == "" {
-		// load config
-		c, err := GetDefaultConfig()
-		if err != nil {
-			log.Printf("can not load rnzoo config: %s\n", err.Error())
-		}
-
-		region = c.AWSRegion
+	region, err := getRegion(c)
+	if err != nil {
+		log.Fatalln(err)
 	}
 
 	instanceId := c.String(OPT_INSTANCE_ID)
@@ -963,6 +969,10 @@ var commandAttachEIP = cli.Command{
 	Action:      doAttachEIP,
 	Flags: []cli.Flag{
 		cli.StringFlag{
+			Name:  OPT_REGION + ", r",
+			Usage: EC2LIST_REGION_USAGE,
+		},
+		cli.StringFlag{
 			Name:  OPT_INSTANCE_ID,
 			Usage: "specify instance id.",
 		},
@@ -983,6 +993,10 @@ var commandMoveEIP = cli.Command{
 	Description: "reallocate EIP(allow reassociate) to other instance.",
 	Action:      doMoveEIP,
 	Flags: []cli.Flag{
+		cli.StringFlag{
+			Name:  OPT_REGION + ", r",
+			Usage: EC2LIST_REGION_USAGE,
+		},
 		cli.BoolFlag{
 			Name:  OPT_WITHOUT_CONFIRM,
 			Usage: "without confirm target before action (default action is do confirming)",
@@ -996,6 +1010,10 @@ var commandDetachEIP = cli.Command{
 	Description: `disassociate EIP and release it.`,
 	Action:      doDetachEIP,
 	Flags: []cli.Flag{
+		cli.StringFlag{
+			Name:  OPT_REGION + ", r",
+			Usage: EC2LIST_REGION_USAGE,
+		},
 		cli.StringFlag{
 			Name:  OPT_INSTANCE_ID,
 			Usage: "specify instance id.",
@@ -1014,12 +1032,10 @@ var commandDetachEIP = cli.Command{
 func doMoveEIP(c *cli.Context) {
 	prepare(c)
 
-	// load config
-	config, err := GetDefaultConfig()
+	region, err := getRegion(c)
 	if err != nil {
-		log.Printf("can not load rnzoo config: %s\n", err.Error())
+		log.Fatalln(err)
 	}
-	region := config.AWSRegion
 
 	// EIP listing
 	allocIds, err := myec2.ChooseEIP(region)
@@ -1095,12 +1111,10 @@ func doMoveEIP(c *cli.Context) {
 func doAttachEIP(c *cli.Context) {
 	prepare(c)
 
-	// load config
-	config, err := GetDefaultConfig()
+	region, err := getRegion(c)
 	if err != nil {
-		log.Printf("can not load rnzoo config: %s\n", err.Error())
+		log.Fatalln(err)
 	}
-	region := config.AWSRegion
 
 	if c.Bool(OPT_MOVE) {
 		log.Fatalln("this option was replaced. please use move-eip subcommand.")
@@ -1172,15 +1186,12 @@ func doAttachEIP(c *cli.Context) {
 func doDetachEIP(c *cli.Context) {
 	prepare(c)
 
-	withoutRelease := c.Bool(OPT_WITHOUT_RELEASE)
-
-	// load config
-	config, err := GetDefaultConfig()
+	region, err := getRegion(c)
 	if err != nil {
-		log.Printf("can not load rnzoo config: %s\n", err.Error())
+		log.Fatalln(err)
 	}
 
-	region := config.AWSRegion
+	withoutRelease := c.Bool(OPT_WITHOUT_RELEASE)
 
 	instanceId := c.String(OPT_INSTANCE_ID)
 	if instanceId == "" {

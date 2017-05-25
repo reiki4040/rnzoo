@@ -2,8 +2,10 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"os"
+	"os/user"
 	"strings"
 
 	"github.com/codegangsta/cli"
@@ -12,6 +14,7 @@ import (
 const (
 	ENV_AWS_REGION = "AWS_REGION"
 	ENV_HOME       = "HOME"
+	ENV_RNZOO_DIR  = "RNZOO_DIR"
 
 	RNZOO_DIR_NAME = ".rnzoo"
 
@@ -97,15 +100,31 @@ func validateInstanceId(id string) error {
 	return nil
 }
 
-func GetRnzooDir() string {
+func GetRnzooDir() (string, error) {
+	if envDir := os.Getenv(ENV_RNZOO_DIR); envDir != "" {
+		// replace ~ -> home dir
+		if i := strings.Index(envDir, "~"); i == 0 {
+			user, err := user.Current()
+			if err != nil {
+				return "", fmt.Errorf("can not resolved RNZOO_DIR ~ : %s", err.Error())
+			}
+			envDir = user.HomeDir + string(os.PathSeparator) + envDir[1:]
+		}
+
+		return envDir, nil
+	}
+
 	rnzooDir := os.Getenv(ENV_HOME) + string(os.PathSeparator) + RNZOO_DIR_NAME
-	return rnzooDir
+	return rnzooDir, nil
 }
 
 func CreateRnzooDir() error {
-	rnzooDir := GetRnzooDir()
+	rnzooDir, err := GetRnzooDir()
+	if err != nil {
+		return err
+	}
 
-	if _, err := os.Stat(rnzooDir); os.IsNotExist(err) {
+	if _, err = os.Stat(rnzooDir); os.IsNotExist(err) {
 		err = os.Mkdir(rnzooDir, 0700)
 		if err != nil {
 			if !os.IsExist(err) {

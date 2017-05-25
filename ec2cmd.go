@@ -1283,7 +1283,10 @@ func doShowBilling(c *cli.Context) {
 }
 
 func NewCStoreManager() (*cstore.Manager, error) {
-	dirPath := GetRnzooDir()
+	dirPath, err := GetRnzooDir()
+	if err != nil {
+		return nil, err
+	}
 	return cstore.NewManager("rnzoo", dirPath)
 }
 

@@ -48,7 +48,7 @@ function build() {
   #for platform in "linux" "windows"; do
   for platform in "linux"; do
     msg "start build rnzoo for $platform..."
-    GOOS="$platform" GOARCH="amd64" go build -o "$dest_dir/rnzoo_${platform}_amd64" -ldflags "-X main.version=$VERSION -X main.hash=$HASH -X \"main.goversion=$GOVERSION\""
+    GOOS="$platform" GOARCH="amd64" CGO_ENABLED=0 go build -o "$dest_dir/rnzoo_${platform}_amd64" -ldflags "-X main.version=$VERSION -X main.hash=$HASH -X \"main.goversion=$GOVERSION\""
     msg "finished build rnzoo for $platform."
   done
 }

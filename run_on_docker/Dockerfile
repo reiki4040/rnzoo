@@ -1,4 +1,4 @@
-FROM alpine:latest
+FROM alpine:3.6
 
 # for x509 error
 RUN apk add --no-cache --update ca-certificates

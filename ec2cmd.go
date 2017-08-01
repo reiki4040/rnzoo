@@ -584,6 +584,7 @@ type EC2RunConfigLaunch struct {
 	NameTagTemplate string `yaml:"name_tag_template"`
 	SubnetId        string `yaml:"subnet_id"`
 	OutputTemplate  string `yaml:"output_template"`
+	OverWriteType   string `yaml:"instance_type"`
 }
 
 func (c *EC2RunConfig) genLauncher() *myec2.Launcher {
@@ -766,15 +767,25 @@ func doEc2run(c *cli.Context) {
 		if c.String(OPT_AMI_ID) != "" {
 			launcher.AmiId = c.String(OPT_AMI_ID)
 		}
-		if c.String(OPT_I_TYPE) != "" {
-			launcher.InstanceType = c.String(OPT_I_TYPE)
-		}
+
 		for i, l := range conf.Launches {
 			// name replace check before launch instance
 			// because name template fail, the instance is no Name tag instance.
 			nr := &NameTagReplacement{
 				Symbol:   c.String(OPT_SYMBOL),
 				Sequence: strconv.Itoa(i + 1),
+			}
+
+			// instance type priority
+			// command option > overwrite config > default config
+			if c.String(OPT_I_TYPE) != "" {
+				launcher.InstanceType = c.String(OPT_I_TYPE)
+			} else {
+				if l.OverWriteType != "" {
+					launcher.InstanceType = l.OverWriteType
+				} else {
+					launcher.InstanceType = conf.Type
+				}
 			}
 
 			replacedNameTag, err := nr.StringWithTemplate(l.NameTagTemplate)

@@ -201,6 +201,10 @@ var commandEc2run = cli.Command{
 			Name:  OPT_SYMBOL,
 			Usage: "replace {{.Symbol}} in name tag",
 		},
+		cli.StringFlag{
+			Name:  OPT_SPECIFY_NAME,
+			Usage: "specify config name in yaml",
+		},
 	},
 }
 
@@ -751,7 +755,13 @@ func doEc2run(c *cli.Context) {
 
 	cli := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
 
+	specifiedName := c.String(OPT_SPECIFY_NAME)
+
 	for _, conf := range cList {
+		if specifiedName != "" && specifiedName != conf.Name {
+			continue
+		}
+
 		tags := make([]*ec2.Tag, 0, len(conf.Tags))
 		for _, t := range conf.Tags {
 			ec2t := ec2.Tag{

@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -817,15 +818,48 @@ func doEc2run(c *cli.Context) {
 			}
 
 			for _, ins := range res.Instances {
+				resources := make([]*string, 0, 3)
+				resources = append(resources, ins.InstanceId)
+
+				retrieveErrs := make([]error, 0, 3)
+				for i = 0; i < 3; i++ {
+					// Why sleep?
+					// RunInstance result does not have BlockDeviceMappings
+					// DescribeInstance that RunInstance same time too.
+					// so sleep a second(or few second?)
+					time.Sleep(500 * time.Millisecond)
+					devMaps, err := myec2.GetBlockDeviceMappings(cli, *ins.InstanceId)
+
+					if err != nil {
+						retrieveErrs = append(retrieveErrs, err)
+						continue
+					}
+
+					if len(devMaps) == 0 {
+						retrieveErrs = append(retrieveErrs, fmt.Errorf("Not found DeviceMappings for: %s. it probably delaying device mapping.", ins.InstanceId))
+
+						continue
+					}
+
+					for _, bdm := range devMaps {
+						resources = append(resources, bdm.Ebs.VolumeId)
+					}
+
+					retrieveErrs = []error{}
+					break
+				}
+
+				if len(retrieveErrs) > 0 {
+					// currently, no handling failed tagging EBS
+				}
+
 				tagp := &ec2.CreateTagsInput{
-					Resources: []*string{
-						ins.InstanceId,
-					},
+					Resources: resources,
 					// append returns new slice when over cap
 					Tags: append(tags, nameTag),
 				}
 
-				_, err := cli.CreateTags(tagp)
+				_, err = cli.CreateTags(tagp)
 				if err != nil {
 					log.Println(fmt.Sprintf("failed tagging so skipped %s: %v\n", ins.InstanceId, err))
 				}

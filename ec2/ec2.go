@@ -553,6 +553,19 @@ func (d *Launcher) Launch(cli *ec2.EC2, subnetId string, count int, dryrun bool)
 
 }
 
+func GetBlockDeviceMappings(cli *ec2.EC2, instanceId string) ([]*ec2.InstanceBlockDeviceMapping, error) {
+	descIns, err := GetInstancesFromId(cli, &instanceId)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(descIns) > 0 {
+		return descIns[0].BlockDeviceMappings, nil
+	} else {
+		return nil, nil
+	}
+}
+
 func convertNilString(s *string) string {
 	if s == nil {
 		return ""

@@ -859,7 +859,7 @@ func doEc2run(c *cli.Context) {
 					Tags: append(tags, nameTag),
 				}
 
-				_, err = cli.CreateTags(tagp)
+				_, err := cli.CreateTags(tagp)
 				if err != nil {
 					log.Println(fmt.Sprintf("failed tagging so skipped %s: %v\n", ins.InstanceId, err))
 				}

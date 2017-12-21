@@ -414,15 +414,16 @@ func GetNotAssociateEIP(cli *ec2.EC2) (*ec2.Address, error) {
 }
 
 type Launcher struct {
-	AmiId            string
-	InstanceType     string
-	KeyName          string
-	SecurityGroupIds []*string
-	PublicIpEnabled  bool
-	Ipv6Enabled      bool
-	IamRoleName      *string
-	EbsDevices       []Ebs
-	EbsOptimized     bool
+	AmiId              string
+	InstanceType       string
+	KeyName            string
+	SecurityGroupIds   []*string
+	PublicIpEnabled    bool
+	Ipv6Enabled        bool
+	IamRoleName        *string
+	EbsDevices         []Ebs
+	EbsOptimized       bool
+	PlacementGroupName string
 }
 
 // why encrypted use *bool?
@@ -466,6 +467,12 @@ func (d *Launcher) Launch(cli *ec2.EC2, subnetId string, count int, dryrun bool)
 	var ipv6count *int64
 	if d.Ipv6Enabled {
 		ipv6count = aws.Int64(1)
+	}
+
+	var placement *ec2.Placement
+	if d.PlacementGroupName != "" {
+		placement = &ec2.Placement{}
+		placement.SetGroupName(d.PlacementGroupName)
 	}
 
 	params := &ec2.RunInstancesInput{
@@ -535,6 +542,7 @@ func (d *Launcher) Launch(cli *ec2.EC2, subnetId string, count int, dryrun bool)
 		//	},
 		//	// More values...
 		//},
+		Placement: placement,
 		//Placement: &ec2.Placement{
 		//	Affinity:         aws.String("String"),
 		//	AvailabilityZone: aws.String("String"),

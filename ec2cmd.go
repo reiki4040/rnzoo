@@ -557,13 +557,14 @@ func doEc2type(c *cli.Context) {
 }
 
 type EC2RunConfig struct {
-	Name            string `yaml:"name"`
-	AmiId           string `yaml:"ami_id"`
-	IamRoleName     string `yaml:"iam_role_name"`
-	PublicIpEnabled bool   `yaml:"public_ip_enabled"`
-	Ipv6Enabled     bool   `yaml:"ipv6_enabled"`
-	Type            string `yaml:"instance_type"`
-	KeyPair         string `yaml:"key_pair"`
+	Name               string `yaml:"name"`
+	AmiId              string `yaml:"ami_id"`
+	IamRoleName        string `yaml:"iam_role_name"`
+	PlacementGroupName string `yaml:"placement_group_name" `
+	PublicIpEnabled    bool   `yaml:"public_ip_enabled"`
+	Ipv6Enabled        bool   `yaml:"ipv6_enabled"`
+	Type               string `yaml:"instance_type"`
+	KeyPair            string `yaml:"key_pair"`
 
 	EbsDevices   []EC2RunEbs `yaml:"ebs_volumes"`
 	EbsOptimized bool        `yaml:"ebs_optimized"`
@@ -617,15 +618,16 @@ func (c *EC2RunConfig) genLauncher() *myec2.Launcher {
 	}
 
 	l := &myec2.Launcher{
-		AmiId:            c.AmiId,
-		InstanceType:     c.Type,
-		KeyName:          c.KeyPair,
-		SecurityGroupIds: sgIds,
-		PublicIpEnabled:  c.PublicIpEnabled,
-		Ipv6Enabled:      c.Ipv6Enabled,
-		IamRoleName:      roleName,
-		EbsDevices:       ebss,
-		EbsOptimized:     c.EbsOptimized,
+		AmiId:              c.AmiId,
+		InstanceType:       c.Type,
+		KeyName:            c.KeyPair,
+		SecurityGroupIds:   sgIds,
+		PublicIpEnabled:    c.PublicIpEnabled,
+		Ipv6Enabled:        c.Ipv6Enabled,
+		IamRoleName:        roleName,
+		EbsDevices:         ebss,
+		EbsOptimized:       c.EbsOptimized,
+		PlacementGroupName: c.PlacementGroupName,
 	}
 
 	return l
@@ -685,14 +687,15 @@ func (o *EC2RunOutput) StringWithTemplate(templateString string) (string, error)
 func StoreSkeletonEC2RunConfigYaml(filePath string) error {
 	encrypted := true
 	s := EC2RunConfig{
-		Name:            "skeleton config example. please replace  properties for your case.",
-		AmiId:           "ami-xxxxxxx",
-		IamRoleName:     "your_iam_role_name",
-		PublicIpEnabled: false,
-		Ipv6Enabled:     false,
-		Type:            "t2.nano",
-		KeyPair:         "your_key_pair_name",
-		EbsOptimized:    false,
+		Name:               "skeleton config example. please replace  properties for your case.",
+		AmiId:              "ami-xxxxxxx",
+		IamRoleName:        "your_iam_role_name",
+		PlacementGroupName: "your_exists_placment_group",
+		PublicIpEnabled:    false,
+		Ipv6Enabled:        false,
+		Type:               "t2.nano",
+		KeyPair:            "your_key_pair_name",
+		EbsOptimized:       false,
 		EbsDevices: []EC2RunEbs{
 			EC2RunEbs{
 				DeviceName:          "/dev/sdb",

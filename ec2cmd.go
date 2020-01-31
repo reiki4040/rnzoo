@@ -64,6 +64,9 @@ const (
 	default listing instances are only stopped instances.
 	if you want select in all state instances, please use --ec2-any-state option.
 	`
+	ATTACH_TAG = `
+	attach tag to EC2 instances.
+	`
 	DEFAULT_OUTPUT_TEMPLATE = "{{.InstanceId}}\t{{.Name}}\t{{.PublicIp}}\t{{.PrivateIp}}"
 )
 
@@ -208,7 +211,6 @@ var commandEc2run = cli.Command{
 		},
 	},
 }
-
 var commandEc2terminate = cli.Command{
 	Name:        "ec2terminate",
 	ShortName:   "terminate",
@@ -239,6 +241,36 @@ var commandEc2terminate = cli.Command{
 		cli.BoolFlag{
 			Name:  OPT_EC2_ANY_STATE,
 			Usage: "selectable all state instances (default only stopped instances)",
+		},
+	},
+}
+
+var commandAttachTag = cli.Command{
+	Name:        "tag",
+	ShortName:   "tag",
+	Usage:       "attach tag to ec2 instance.",
+	Description: ATTACH_TAG,
+	Action:      doAttachTag,
+	Flags: []cli.Flag{
+		cli.StringFlag{
+			Name:  OPT_REGION + ", r",
+			Usage: EC2LIST_REGION_USAGE,
+		},
+		cli.StringFlag{
+			Name:  OPT_INSTANCE_ID,
+			Usage: "specify the instance id that you want termination.",
+		},
+		cli.StringFlag{
+			Name:  OPT_TAG_PAIRS,
+			Usage: "specify attach tag pairs. Key1=Value1,Key2=Value2",
+		},
+		cli.StringFlag{
+			Name:  OPT_TAG_DELETE_KEYS,
+			Usage: "specify delete tag keys. Key1,Key2",
+		},
+		cli.BoolFlag{
+			Name:  OPT_EC2_ANY_STATE,
+			Usage: "selectable all state instances (default only running instances)",
 		},
 	},
 }
@@ -976,6 +1008,106 @@ func doEc2Terminate(c *cli.Context) {
 		pState := convertNilString(status.PreviousState.Name)
 		cState := convertNilString(status.CurrentState.Name)
 		log.Printf("terminated %s: %s -> %s", id, pState, cState)
+	}
+}
+
+func doAttachTag(c *cli.Context) {
+	prepare(c)
+
+	region, err := getRegion(c)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	instanceId := c.String(OPT_INSTANCE_ID)
+	var ids []*string
+	if instanceId == "" {
+
+		h, err := NewRnzooCStoreManager()
+		if err != nil {
+			log.Printf("can not load EC2: %s\n", err.Error())
+		}
+
+		fState := myec2.EC2_STATE_RUNNING
+		if c.Bool(OPT_EC2_ANY_STATE) {
+			fState = myec2.EC2_STATE_ANY
+		}
+		ids, err = h.ChooseEC2(region, fState, true)
+		if err != nil {
+			log.Fatalf("error during selecting: %s", err.Error())
+			return
+		}
+
+	} else {
+		ids = []*string{aws.String(instanceId)}
+	}
+
+	if len(ids) == 0 {
+		log.Fatalln("there is no instance id.")
+		return
+	}
+
+	optTagPairs := c.String(OPT_TAG_PAIRS)
+	optDeleteKeys := c.String(OPT_TAG_DELETE_KEYS)
+	if optTagPairs == "" && optDeleteKeys == "" {
+		log.Fatalf("specify %s and/or %s option", OPT_TAG_PAIRS, OPT_TAG_DELETE_KEYS)
+		return
+	}
+
+	// parse tag pairs ex) Key1=Value1,Key2=Value2
+	if optTagPairs != "" {
+		pairs := strings.Split(optTagPairs, ",")
+
+		tags := make([]*ec2.Tag, 0, len(pairs))
+		for _, pair := range pairs {
+			kv := strings.SplitN(pair, "=", 2)
+			if kv[0] == "" {
+				continue
+			}
+
+			tag := &ec2.Tag{
+				Key:   aws.String(kv[0]),
+				Value: aws.String(kv[1]),
+			}
+			tags = append(tags, tag)
+		}
+
+		cli := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
+		params := &ec2.CreateTagsInput{
+			Resources: ids,
+			Tags:      tags,
+		}
+
+		_, err = cli.CreateTags(params)
+		if err != nil {
+			log.Fatalf("error during create tags to instance: %v", err)
+			return
+		}
+	}
+
+	// parse delete tag keys ex) Key1,Key2
+	if optDeleteKeys != "" {
+		keys := strings.Split(optDeleteKeys, ",")
+
+		tags := make([]*ec2.Tag, 0, 1)
+		for _, key := range keys {
+			tag := &ec2.Tag{
+				Key: aws.String(key),
+			}
+			tags = append(tags, tag)
+		}
+
+		cli := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
+		params := &ec2.DeleteTagsInput{
+			Resources: ids,
+			Tags:      tags,
+		}
+
+		_, err = cli.DeleteTags(params)
+		if err != nil {
+			log.Fatalf("error during delete tags to instance: %v", err)
+			return
+		}
 	}
 }
 

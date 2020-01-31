@@ -64,7 +64,7 @@ const (
 	default listing instances are only stopped instances.
 	if you want select in all state instances, please use --ec2-any-state option.
 	`
-	ATTACH_TAG = `
+	EC2TAG_DESC = `
 	attach tag to EC2 instances.
 	`
 	DEFAULT_OUTPUT_TEMPLATE = "{{.InstanceId}}\t{{.Name}}\t{{.PublicIp}}\t{{.PrivateIp}}"
@@ -245,12 +245,12 @@ var commandEc2terminate = cli.Command{
 	},
 }
 
-var commandAttachTag = cli.Command{
-	Name:        "tag",
+var commandEc2Tag = cli.Command{
+	Name:        "ec2tag",
 	ShortName:   "tag",
 	Usage:       "attach tag to ec2 instance.",
-	Description: ATTACH_TAG,
-	Action:      doAttachTag,
+	Description: EC2TAG_DESC,
+	Action:      doEc2Tag,
 	Flags: []cli.Flag{
 		cli.StringFlag{
 			Name:  OPT_REGION + ", r",
@@ -1011,7 +1011,7 @@ func doEc2Terminate(c *cli.Context) {
 	}
 }
 
-func doAttachTag(c *cli.Context) {
+func doEc2Tag(c *cli.Context) {
 	prepare(c)
 
 	region, err := getRegion(c)

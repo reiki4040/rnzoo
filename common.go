@@ -47,6 +47,9 @@ const (
 	OPT_EC2_ANY_STATE   = "ec2-any-state"
 	OPT_EXECUTE         = "execute"
 	OPT_WITHOUT_CONFIRM = "without-confirm"
+
+	OPT_TAG_PAIRS       = "pairs"
+	OPT_TAG_DELETE_KEYS = "delete-keys"
 )
 
 var silent bool

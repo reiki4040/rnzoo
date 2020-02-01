@@ -1162,6 +1162,14 @@ func confirm(msg string, defaultAns bool) (bool, error) {
 
 var (
 	EC2InstanceTypeList = []peco.Choosable{
+		&peco.Choice{C: "t3.nano", V: "t3.nano"},
+		&peco.Choice{C: "t3.micro", V: "t3.micro"},
+		&peco.Choice{C: "t3.small", V: "t3.small"},
+		&peco.Choice{C: "t3.medium", V: "t3.medium"},
+		&peco.Choice{C: "t3.large", V: "t3.large"},
+		&peco.Choice{C: "c5.large", V: "c5.large"},
+		&peco.Choice{C: "m5.large", V: "m5.large"},
+		&peco.Choice{C: "r5.large", V: "r5.large"},
 		&peco.Choice{C: "t2.nano", V: "t2.nano"},
 		&peco.Choice{C: "t2.micro", V: "t2.micro"},
 		&peco.Choice{C: "t2.small", V: "t2.small"},

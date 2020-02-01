@@ -360,7 +360,10 @@ func doEc2start(c *cli.Context) {
 		ids = []*string{aws.String(instanceId)}
 	}
 
-	cli := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
+	sess := session.Must(session.NewSession(&aws.Config{
+		Region: aws.String(region),
+	}))
+	cli := ec2.New(sess)
 
 	if c.Bool(OPT_CONFIRM) {
 		insts, err := myec2.GetInstancesFromId(cli, ids...)
@@ -433,7 +436,10 @@ func doEc2stop(c *cli.Context) {
 		ids = []*string{aws.String(instanceId)}
 	}
 
-	cli := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
+	sess := session.Must(session.NewSession(&aws.Config{
+		Region: aws.String(region),
+	}))
+	cli := ec2.New(sess)
 
 	if !c.Bool(OPT_WITHOUT_CONFIRM) {
 		insts, err := myec2.GetInstancesFromId(cli, ids...)
@@ -522,7 +528,10 @@ func doEc2type(c *cli.Context) {
 		iType = chosenType[0].Value()
 	}
 
-	cli := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
+	sess := session.Must(session.NewSession(&aws.Config{
+		Region: aws.String(region),
+	}))
+	cli := ec2.New(sess)
 
 	if c.Bool(OPT_CONFIRM) {
 		insts, err := myec2.GetInstancesFromId(cli, ids...)
@@ -789,7 +798,10 @@ func doEc2run(c *cli.Context) {
 		cList = append(cList, configs...)
 	}
 
-	cli := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
+	sess := session.Must(session.NewSession(&aws.Config{
+		Region: aws.String(region),
+	}))
+	cli := ec2.New(sess)
 
 	specifiedName := c.String(OPT_SPECIFY_NAME)
 
@@ -960,7 +972,10 @@ func doEc2Terminate(c *cli.Context) {
 		return
 	}
 
-	cli := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
+	sess := session.Must(session.NewSession(&aws.Config{
+		Region: aws.String(region),
+	}))
+	cli := ec2.New(sess)
 
 	if !c.Bool(OPT_WITHOUT_CONFIRM) {
 		insts, err := myec2.GetInstancesFromId(cli, ids...)
@@ -1072,7 +1087,10 @@ func doEc2Tag(c *cli.Context) {
 			tags = append(tags, tag)
 		}
 
-		cli := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
+		sess := session.Must(session.NewSession(&aws.Config{
+			Region: aws.String(region),
+		}))
+		cli := ec2.New(sess)
 		params := &ec2.CreateTagsInput{
 			Resources: ids,
 			Tags:      tags,
@@ -1097,7 +1115,10 @@ func doEc2Tag(c *cli.Context) {
 			tags = append(tags, tag)
 		}
 
-		cli := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
+		sess := session.Must(session.NewSession(&aws.Config{
+			Region: aws.String(region),
+		}))
+		cli := ec2.New(sess)
 		params := &ec2.DeleteTagsInput{
 			Resources: ids,
 			Tags:      tags,
@@ -1255,7 +1276,10 @@ func doMoveEIP(c *cli.Context) {
 	}
 
 	// moving
-	cli := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
+	sess := session.Must(session.NewSession(&aws.Config{
+		Region: aws.String(region),
+	}))
+	cli := ec2.New(sess)
 
 	if !c.Bool(OPT_WITHOUT_CONFIRM) {
 		insts, err := myec2.GetInstancesFromId(cli, &instanceId)
@@ -1335,8 +1359,10 @@ func doAttachEIP(c *cli.Context) {
 	}
 
 	reuseEIP := c.Bool(OPT_REUSE)
-
-	cli := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
+	sess := session.Must(session.NewSession(&aws.Config{
+		Region: aws.String(region),
+	}))
+	cli := ec2.New(sess)
 
 	var allocId string
 	var ip string
@@ -1407,7 +1433,10 @@ func doDetachEIP(c *cli.Context) {
 		}
 	}
 
-	cli := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
+	sess := session.Must(session.NewSession(&aws.Config{
+		Region: aws.String(region),
+	}))
+	cli := ec2.New(sess)
 	address, err := myec2.GetEIPFromInstance(cli, instanceId)
 	if err != nil {
 		log.Fatalf(err.Error())

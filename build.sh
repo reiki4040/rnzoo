@@ -14,7 +14,6 @@ rnzoo build script.
 
 [Options]
   -a: create archive for release
-  -g: run glide up when build
   -s: show current build version for check
   -q: quiet mode
 
@@ -37,15 +36,6 @@ function err_exit() {
 
 function build() {
   local dest_dir=$1
-
-  if [ -n "$glideup" ]; then
-    msg "run glide up..."
-    if [ -n "$quiet" ]; then
-      glide -q up
-	else
-      glide up
-	fi
-  fi
 
   msg "start build rnzoo..."
   GOOS="darwin" GOARCH="amd64" go build -o "$dest_dir/rnzoo" -ldflags "-X main.version=$VERSION -X main.hash=$HASH -X \"main.goversion=$GOVERSION\""
@@ -93,16 +83,13 @@ function create_archive() {
 }
 
 mode="build"
-glideup=""
-while getopts ashqu OPT
+while getopts ashq OPT
 do
   case $OPT in
     a) mode="archive"
        ;;
     s) show_build_version
        exit 0
-       ;;
-    u) glideup="1"
        ;;
     h) usage
        exit 0

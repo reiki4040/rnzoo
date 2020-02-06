@@ -65,8 +65,12 @@ const (
 	if you want select in all state instances, please use --ec2-any-state option.
 	`
 	EC2TAG_DESC = `
-	attach tag to EC2 instances.
+	attach/detach tag to EC2 instances.
+
+    set key1 and Key2 tag with value and delete key0 and Key10 tag.
+    rnzoo tag --pairs Key1=Value1,Key2=Value2 --delete-keys=Key0,Key10
 	`
+
 	DEFAULT_OUTPUT_TEMPLATE = "{{.InstanceId}}\t{{.Name}}\t{{.PublicIp}}\t{{.PrivateIp}}"
 )
 
@@ -1034,6 +1038,14 @@ func doEc2Tag(c *cli.Context) {
 		log.Fatalln(err)
 	}
 
+	// check specified tag before select EC2 instances.
+	optTagPairs := c.String(OPT_TAG_PAIRS)
+	optDeleteKeys := c.String(OPT_TAG_DELETE_KEYS)
+	if optTagPairs == "" && optDeleteKeys == "" {
+		log.Fatalf("specify %s and/or %s option", OPT_TAG_PAIRS, OPT_TAG_DELETE_KEYS)
+		return
+	}
+
 	instanceId := c.String(OPT_INSTANCE_ID)
 	var ids []*string
 	if instanceId == "" {
@@ -1059,13 +1071,6 @@ func doEc2Tag(c *cli.Context) {
 
 	if len(ids) == 0 {
 		log.Fatalln("there is no instance id.")
-		return
-	}
-
-	optTagPairs := c.String(OPT_TAG_PAIRS)
-	optDeleteKeys := c.String(OPT_TAG_DELETE_KEYS)
-	if optTagPairs == "" && optDeleteKeys == "" {
-		log.Fatalf("specify %s and/or %s option", OPT_TAG_PAIRS, OPT_TAG_DELETE_KEYS)
 		return
 	}
 

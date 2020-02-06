@@ -1038,6 +1038,14 @@ func doEc2Tag(c *cli.Context) {
 		log.Fatalln(err)
 	}
 
+	// check specified tag before select EC2 instances.
+	optTagPairs := c.String(OPT_TAG_PAIRS)
+	optDeleteKeys := c.String(OPT_TAG_DELETE_KEYS)
+	if optTagPairs == "" && optDeleteKeys == "" {
+		log.Fatalf("specify %s and/or %s option", OPT_TAG_PAIRS, OPT_TAG_DELETE_KEYS)
+		return
+	}
+
 	instanceId := c.String(OPT_INSTANCE_ID)
 	var ids []*string
 	if instanceId == "" {
@@ -1063,13 +1071,6 @@ func doEc2Tag(c *cli.Context) {
 
 	if len(ids) == 0 {
 		log.Fatalln("there is no instance id.")
-		return
-	}
-
-	optTagPairs := c.String(OPT_TAG_PAIRS)
-	optDeleteKeys := c.String(OPT_TAG_DELETE_KEYS)
-	if optTagPairs == "" && optDeleteKeys == "" {
-		log.Fatalf("specify %s and/or %s option", OPT_TAG_PAIRS, OPT_TAG_DELETE_KEYS)
 		return
 	}
 

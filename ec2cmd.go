@@ -65,8 +65,12 @@ const (
 	if you want select in all state instances, please use --ec2-any-state option.
 	`
 	EC2TAG_DESC = `
-	attach tag to EC2 instances.
+	attach/detach tag to EC2 instances.
+
+    set key1 and Key2 tag with value and delete key0 and Key10 tag.
+    rnzoo tag --pairs Key1=Value1,Key2=Value2 --delete-keys=Key0,Key10
 	`
+
 	DEFAULT_OUTPUT_TEMPLATE = "{{.InstanceId}}\t{{.Name}}\t{{.PublicIp}}\t{{.PrivateIp}}"
 )
 

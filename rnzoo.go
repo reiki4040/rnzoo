@@ -8,9 +8,7 @@ import (
 
 var (
 	version   string
-	hash      string
-	builddate string
-	goversion string
+	revision  string
 )
 
 var CliFlags = []cli.Flag{
@@ -42,7 +40,7 @@ var Commands = []cli.Command{
 func main() {
 	app := cli.NewApp()
 	app.Name = "rnzoo"
-	app.Version = version + " (" + hash + ") " + goversion
+	app.Version = version + " (" + revision + ")"
 	app.Usage = "useful commands for ec2."
 	app.Author = "reiki4040"
 	app.Email = ""

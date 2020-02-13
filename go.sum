@@ -1,0 +1,11 @@
+github.com/BurntSushi/toml v0.2.1-0.20170318202913-d94612f9fc14/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
+github.com/aws/aws-sdk-go v1.28.11/go.mod h1:KmX6BPdI08NWTb3/sm4ZGu5ShLoqVDhKgpiN924inxo=
+github.com/codegangsta/cli v1.19.2-0.20170304223336-9e5b04886c4b h1:tSwkXBokPt9jGQnK2qNjaO+VYRkx6/CN1udzfN/WDLk=
+github.com/codegangsta/cli v1.19.2-0.20170304223336-9e5b04886c4b/go.mod h1:/qJNoX69yVSKu5o4jLyXAENLRyk1uhi7zkbQ3slBdOA=
+github.com/go-ini/ini v1.26.0/go.mod h1:ByCAeIL28uOIIG0E3PJtZPDL8WnHpFKFOtgjp+3Ies8=
+github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af/go.mod h1:Nht3zPeWKUH0NzdCt2Blrr5ys8VGpn0CEB0cQHVjt7k=
+github.com/mattn/go-runewidth v0.0.3-0.20170201023540-14207d285c6c/go.mod h1:LwmH8dsx7+W8Uxz3IHJYH5QSwggIsqBzpuz5H//U1FU=
+github.com/nsf/termbox-go v0.0.0-20170301014343-91bae1bb5fa9/go.mod h1:IuKpRQcYE1Tfu+oAQqaLisqDeXgjyyltCfsaoYN18NQ=
+github.com/reiki4040/cstore v0.0.0-20151209111226-3a1ef96c2022/go.mod h1:iasUXhWLAjllWiD6wrBN4uHrwG/IGH/8tn7bzZrOxow=
+github.com/reiki4040/peco v0.2.11-0.20151126115510-ddfdd8e55636/go.mod h1:x/NwSG06TNdVaMRKgR9qx1+HtGgcfnJlKOlD8zpHX44=
+gopkg.in/yaml.v2 v2.0.0-20170208141851-a3f3340b5840/go.mod h1:JAlM8MvJe8wmxCU4Bli9HhUf9+ttbYbLASfIpnQbh74=

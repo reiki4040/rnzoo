@@ -17,11 +17,7 @@ rnzoo is useful cli to use ec2.
 ### homebrew
 
 ```
-brew tap reiki4040/rnzoo
-brew install rnzoo
-
-# if you want use development version, then --devel option.
-brew install --devel rnzoo
+brew install reiki4040/tap/rnzoo
 ```
 
 ## Settings

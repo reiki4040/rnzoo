@@ -17,11 +17,7 @@ rnzoo is useful cli to use ec2.
 ### homebrew
 
 ```
-brew tap reiki4040/rnzoo
-brew install rnzoo
-
-# if you want use development version, then --devel option.
-brew install --devel rnzoo
+brew install reiki4040/tap/rnzoo
 ```
 
 ## Settings
@@ -65,6 +61,7 @@ rnzoo init
 | ec2stop, stop | stop ec2 instances |
 | ec2type, type | modify ec2 instance type |
 | ec2terminate, terminate | terminate ec2 instances |
+| ec2tag, tag | attach/delete tag to ec2 instances |
 | attach-eip | allocate new EIP(allow reassociate) and associate it to the instance |
 | move-eip | reallocate EIP(allow reassociate) to other instance |
 | detach-eip | disassociate EIP and release it |

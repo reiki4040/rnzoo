@@ -61,6 +61,7 @@ rnzoo init
 | ec2stop, stop | stop ec2 instances |
 | ec2type, type | modify ec2 instance type |
 | ec2terminate, terminate | terminate ec2 instances |
+| ec2tag, tag | attach/delete tag to ec2 instances |
 | attach-eip | allocate new EIP(allow reassociate) and associate it to the instance |
 | move-eip | reallocate EIP(allow reassociate) to other instance |
 | detach-eip | disassociate EIP and release it |

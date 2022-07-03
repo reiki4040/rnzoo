@@ -1,8 +1,2 @@
-archives/
-work/
-bin/
-vendor/
-.DS_Store
 rnzoo
-.idea/
 dist/

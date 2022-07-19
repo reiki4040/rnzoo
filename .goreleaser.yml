@@ -18,6 +18,7 @@ builds:
       - darwin
     goarch:
       - amd64
+      - arm64
 archives:
   - name_template: '{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
     replacements:
@@ -35,9 +36,10 @@ release:
 # homebrew
 brews:
   - description: "Useful tool for EC2."
-    github:
+    tap:
       owner: reiki4040
       name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     homepage: "https://github.com/reiki4040/rnzoo"
     install: |
       bin.install "rnzoo"

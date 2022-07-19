@@ -2,6 +2,7 @@ package ec2
 
 import (
 	"bytes"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"sort"
@@ -424,6 +425,7 @@ type Launcher struct {
 	EbsDevices         []Ebs
 	EbsOptimized       bool
 	PlacementGroupName string
+	UserData           string
 }
 
 // why encrypted use *bool?
@@ -473,6 +475,11 @@ func (d *Launcher) Launch(cli *ec2.EC2, subnetId string, count int, dryrun bool)
 	if d.PlacementGroupName != "" {
 		placement = &ec2.Placement{}
 		placement.SetGroupName(d.PlacementGroupName)
+	}
+
+	var userData string
+	if d.UserData != "" {
+		userData = base64.StdEncoding.EncodeToString([]byte(d.UserData))
 	}
 
 	params := &ec2.RunInstancesInput{
@@ -554,7 +561,7 @@ func (d *Launcher) Launch(cli *ec2.EC2, subnetId string, count int, dryrun bool)
 		//RamdiskId:        aws.String("String"),
 		//SecurityGroupIds: p.SecurityGroupIds,
 		//SubnetId:         aws.String(p.SubnetId),
-		//UserData: aws.String("String"),
+		UserData: aws.String(userData),
 	}
 
 	return cli.RunInstances(params)

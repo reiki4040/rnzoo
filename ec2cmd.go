@@ -637,7 +637,7 @@ type EC2RunConfigLaunch struct {
 	NameTagTemplate string `yaml:"name_tag_template"`
 	SubnetId        string `yaml:"subnet_id"`
 	OutputTemplate  string `yaml:"output_template"`
-	OverWriteType   string `yaml:"instance_type"`
+	OverWriteType   string `yaml:"instance_type,omitempty"`
 }
 
 func (c *EC2RunConfig) genLauncher() *myec2.Launcher {
@@ -741,12 +741,12 @@ func StoreSkeletonEC2RunConfigYaml(filePath string) error {
 		PlacementGroupName: "your_exists_placment_group",
 		PublicIpEnabled:    false,
 		Ipv6Enabled:        false,
-		Type:               "t2.nano",
+		Type:               "t3.nano",
 		KeyPair:            "your_key_pair_name",
 		EbsOptimized:       false,
 		EbsDevices: []EC2RunEbs{
 			EC2RunEbs{
-				DeviceName:          "/dev/sdb",
+				DeviceName:          "/dev/xvda",
 				DeleteOnTermination: false,
 				Encrypted:           &encrypted,
 				SizeGB:              8,
@@ -760,8 +760,9 @@ func StoreSkeletonEC2RunConfigYaml(filePath string) error {
 			},
 		},
 		SecurityGroupIds: []string{"sg-xxxxxxxx", "sg-yyyyyyyy"},
+		UserData:         "#!/bin/bash\ntouch /var/log/rnzoo_userdata_sample.touch",
 		Launches: []EC2RunConfigLaunch{
-			EC2RunConfigLaunch{
+			{
 				NameTagTemplate: "instance {{.Symbol}} {{.Sequence}}",
 				SubnetId:        "subnet-xxxxxxxx",
 				OutputTemplate:  "{{.InstanceId}},{{.Name}},{{.PublicIp}},{{.Symbol}},{{.Sequence}}",

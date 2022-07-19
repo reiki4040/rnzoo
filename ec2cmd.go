@@ -614,6 +614,8 @@ type EC2RunConfig struct {
 	EbsDevices   []EC2RunEbs `yaml:"ebs_volumes"`
 	EbsOptimized bool        `yaml:"ebs_optimized"`
 
+	UserData string `yaml:"user_data"`
+
 	Tags             []EC2RunConfigTag    `yaml:"tags"`
 	SecurityGroupIds []string             `yaml:"security_group_ids"`
 	Launches         []EC2RunConfigLaunch `yaml:"launches"`
@@ -673,6 +675,7 @@ func (c *EC2RunConfig) genLauncher() *myec2.Launcher {
 		EbsDevices:         ebss,
 		EbsOptimized:       c.EbsOptimized,
 		PlacementGroupName: c.PlacementGroupName,
+		UserData:           c.UserData,
 	}
 
 	return l

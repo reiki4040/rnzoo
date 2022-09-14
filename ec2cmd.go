@@ -933,6 +933,24 @@ func doEc2run(c *cli.Context) {
 					outputTemplate = l.OutputTemplate
 				}
 
+				idx := strings.Index(outputTemplate, "{{.PublicIp}}")
+				if idx != -1 {
+					insIds := []*string{ins.InstanceId}
+					descIn := &ec2.DescribeInstancesInput{
+						InstanceIds: insIds,
+					}
+					res, err := cli.DescribeInstances(descIn)
+					if err != nil {
+						log.Printf("failed desc instance: %s", err)
+						continue
+					}
+					if len(res.Reservations) == 1 {
+						if len(res.Reservations[0].Instances) == 1 {
+							output.PublicIp = convertNilString(res.Reservations[0].Instances[0].PublicIpAddress)
+						}
+					}
+				}
+
 				oString, err := output.StringWithTemplate(outputTemplate)
 				if err != nil {
 					log.Println(fmt.Sprintf("%s failed replacing output template: %v", ins.InstanceId, err))

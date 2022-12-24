@@ -12,7 +12,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/codegangsta/cli"
+	"github.com/urfave/cli/v2"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
@@ -86,20 +86,20 @@ var commandInit = cli.Command{
 
 var commandEc2list = cli.Command{
 	Name:        "ec2list",
-	ShortName:   "ls",
+	Aliases:     []string{"ls"},
 	Usage:       EC2LIST_USAGE,
 	Description: EC2LIST_DESC,
 	Action:      doEc2list,
 	Flags: []cli.Flag{
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  OPT_FORCE + ", f",
 			Usage: EC2LIST_FORCE_USAGE,
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  OPT_REGION + ", r",
 			Usage: EC2LIST_REGION_USAGE,
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  OPT_TSV + ", t",
 			Usage: EC2LIST_TSV,
 		},
@@ -108,20 +108,20 @@ var commandEc2list = cli.Command{
 
 var commandEc2start = cli.Command{
 	Name:        "ec2start",
-	ShortName:   "start",
+	Aliases:     []string{"start"},
 	Usage:       "start ec2",
 	Description: `start ec2 that already exists.`,
 	Action:      doEc2start,
 	Flags: []cli.Flag{
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  OPT_REGION + ", r",
 			Usage: EC2LIST_REGION_USAGE,
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  OPT_INSTANCE_ID,
 			Usage: "specify start instance id.",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  OPT_CONFIRM,
 			Usage: "confirm target instances before action.",
 		},
@@ -130,20 +130,20 @@ var commandEc2start = cli.Command{
 
 var commandEc2stop = cli.Command{
 	Name:        "ec2stop",
-	ShortName:   "stop",
+	Aliases:     []string{"stop"},
 	Usage:       "stop ec2",
 	Description: `stop ec2 that already running.`,
 	Action:      doEc2stop,
 	Flags: []cli.Flag{
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  OPT_REGION + ", r",
 			Usage: EC2LIST_REGION_USAGE,
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  OPT_INSTANCE_ID,
 			Usage: "specify stop instance id.",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  OPT_WITHOUT_CONFIRM,
 			Usage: "without target instance confirming (default action is do confirming)",
 		},
@@ -152,28 +152,28 @@ var commandEc2stop = cli.Command{
 
 var commandEc2type = cli.Command{
 	Name:        "ec2type",
-	ShortName:   "type",
+	Aliases:     []string{"type"},
 	Usage:       "modify ec2 instance type",
 	Description: EC2TYPE_DESC,
 	Action:      doEc2type,
 	Flags: []cli.Flag{
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  OPT_REGION + ", r",
 			Usage: EC2LIST_REGION_USAGE,
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  OPT_INSTANCE_ID,
 			Usage: "specify already stopped instance id.",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  OPT_I_TYPE + ", t",
 			Usage: "specify new instance type.",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  OPT_START,
 			Usage: "start the instance after modifying type.",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  OPT_CONFIRM,
 			Usage: "confirm target instances before action.",
 		},
@@ -182,36 +182,36 @@ var commandEc2type = cli.Command{
 
 var commandEc2run = cli.Command{
 	Name:        "ec2run",
-	ShortName:   "run",
+	Aliases:     []string{"run"},
 	Usage:       "run new ec2 instances",
 	Description: EC2RUN_DESC,
 	Action:      doEc2run,
 	Flags: []cli.Flag{
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  OPT_DRYRUN,
 			Usage: "dry-run ec2 run.",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  OPT_SKELETON,
 			Usage: "store skeleton config yaml to specified file path",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  OPT_REGION + ", r",
 			Usage: EC2LIST_REGION_USAGE,
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  OPT_AMI_ID,
 			Usage: "overwrite run AMI ID.",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  OPT_I_TYPE,
 			Usage: "overwrite run instance type.",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  OPT_SYMBOL,
 			Usage: "replace {{.Symbol}} in name tag",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  OPT_SPECIFY_NAME,
 			Usage: "specify config name in yaml",
 		},
@@ -219,32 +219,32 @@ var commandEc2run = cli.Command{
 }
 var commandEc2terminate = cli.Command{
 	Name:        "ec2terminate",
-	ShortName:   "terminate",
+	Aliases:     []string{"terminate"},
 	Usage:       "terminate instances.",
 	Description: EC2TERMINATE_DESC,
 	Action:      doEc2Terminate,
 	Flags: []cli.Flag{
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  OPT_REGION + ", r",
 			Usage: EC2LIST_REGION_USAGE,
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  OPT_INSTANCE_ID,
 			Usage: "specify the instance id that you want termination.",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  OPT_DRYRUN,
 			Usage: "dry-run ec2 terminate.",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  OPT_EXECUTE,
 			Usage: "execute ec2 terminate (default action is dryrun. if execute and dryrun options set in same time, then do dryrun)",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  OPT_WITHOUT_CONFIRM,
 			Usage: "without target instance confirming (default action is do confirming)",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  OPT_EC2_ANY_STATE,
 			Usage: "selectable all state instances (default only stopped instances)",
 		},
@@ -253,28 +253,28 @@ var commandEc2terminate = cli.Command{
 
 var commandEc2Tag = cli.Command{
 	Name:        "ec2tag",
-	ShortName:   "tag",
+	Aliases:     []string{"tag"},
 	Usage:       "attach tag to ec2 instance.",
 	Description: EC2TAG_DESC,
 	Action:      doEc2Tag,
 	Flags: []cli.Flag{
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  OPT_REGION + ", r",
 			Usage: EC2LIST_REGION_USAGE,
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  OPT_INSTANCE_ID,
 			Usage: "specify the instance id that you want termination.",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  OPT_TAG_PAIRS,
 			Usage: "specify attach tag pairs. Key1=Value1,Key2=Value2",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  OPT_TAG_DELETE_KEYS,
 			Usage: "specify delete tag keys. Key1,Key2",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  OPT_EC2_ANY_STATE,
 			Usage: "selectable all state instances (default only running instances)",
 		},
@@ -307,17 +307,17 @@ func getRegion(c *cli.Context) (string, error) {
 	return "", fmt.Errorf("did not specified region, please set region with -r option or AWS_REGION environment variable or 'rnzoo init'")
 }
 
-func doEc2list(c *cli.Context) {
+func doEc2list(c *cli.Context) error {
 	isReload := c.Bool(OPT_FORCE)
 
 	region, err := getRegion(c)
 	if err != nil {
-		log.Fatalln(err)
+		return cli.Exit(err.Error(), 1)
 	}
 
 	err = CreateRnzooDir()
 	if err != nil {
-		log.Printf("can not create rnzoo dir: %s\n", err.Error())
+		ErrExit("can not create rnzoo dir: %s", err.Error())
 	}
 
 	h, err := NewRnzooCStoreManager()
@@ -337,9 +337,11 @@ func doEc2list(c *cli.Context) {
 			fmt.Println(i.Choice())
 		}
 	}
+
+	return nil
 }
 
-func doEc2start(c *cli.Context) {
+func doEc2start(c *cli.Context) error {
 	prepare(c)
 
 	region, err := getRegion(c)
@@ -350,18 +352,15 @@ func doEc2start(c *cli.Context) {
 	instanceId := c.String(OPT_INSTANCE_ID)
 	var ids []string
 	if instanceId == "" {
-
 		h, err := NewRnzooCStoreManager()
 		if err != nil {
-			log.Printf("can not load EC2: %s\n", err.Error())
+			return ErrExit("can not load EC2: %s", err.Error())
 		}
 
 		ids, err = h.ChooseEC2(region, myec2.EC2_STATE_STOPPED, true)
 		if err != nil {
-			log.Fatalf("error during selecting: %s", err.Error())
-			return
+			return ErrExit("error during selecting: %s", err.Error())
 		}
-
 	} else {
 		ids = []string{instanceId}
 	}
@@ -369,15 +368,13 @@ func doEc2start(c *cli.Context) {
 	ctx := context.TODO()
 	cli, err := myec2.MakeEC2Client(ctx, region)
 	if err != nil {
-		log.Printf("failed ec2 client initialization: %v", err)
-		return
+		return ErrExit("failed ec2 client initialization: %v", err)
 	}
 
 	if c.Bool(OPT_CONFIRM) {
 		insts, err := myec2.GetInstancesFromId(ctx, cli, ids...)
 		if err != nil {
-			log.Fatalln("failed retrieve instance info for confirm.")
-			return
+			return ErrExit("failed retrieve instance info for confirm.")
 		}
 
 		for _, ins := range insts {
@@ -394,8 +391,7 @@ func doEc2start(c *cli.Context) {
 
 		ans, err := confirm("start above instances?", false)
 		if !ans {
-			log.Fatalln("canceled instance start action.")
-			return
+			return ErrExit("canceled instance start action.")
 		}
 	}
 
@@ -405,8 +401,7 @@ func doEc2start(c *cli.Context) {
 
 	resp, err := cli.StartInstances(ctx, params)
 	if err != nil {
-		log.Fatalf("error during launching: %s", err.Error())
-		return
+		return ErrExit("error during launching: %s", err.Error())
 	}
 
 	for _, status := range resp.StartingInstances {
@@ -415,9 +410,11 @@ func doEc2start(c *cli.Context) {
 		cState := convertNilString((*string)(&status.CurrentState.Name))
 		log.Printf("launched %s: %s -> %s", id, pState, cState)
 	}
+
+	return nil
 }
 
-func doEc2stop(c *cli.Context) {
+func doEc2stop(c *cli.Context) error {
 	prepare(c)
 
 	region, err := getRegion(c)
@@ -431,13 +428,12 @@ func doEc2stop(c *cli.Context) {
 
 		h, err := NewRnzooCStoreManager()
 		if err != nil {
-			log.Printf("can not load EC2: %s\n", err.Error())
+			return ErrExit("can not load EC2: %s\n", err.Error())
 		}
 
 		ids, err = h.ChooseEC2(region, myec2.EC2_STATE_RUNNING, true)
 		if err != nil {
-			log.Fatalf("error during selecting: %s", err.Error())
-			return
+			return ErrExit("error during selecting: %s", err.Error())
 		}
 
 	} else {
@@ -447,14 +443,13 @@ func doEc2stop(c *cli.Context) {
 	ctx := context.TODO()
 	cli, err := myec2.MakeEC2Client(ctx, region)
 	if err != nil {
-		log.Printf("failed ec2 client initialization: %v", err)
+		return ErrExit("failed ec2 client initialization: %v", err)
 	}
 
 	if !c.Bool(OPT_WITHOUT_CONFIRM) {
 		insts, err := myec2.GetInstancesFromId(ctx, cli, ids...)
 		if err != nil {
-			log.Fatalln("failed retrieve instance info for confirm.")
-			return
+			return ErrExit("failed retrieve instance info for confirm.")
 		}
 
 		for _, ins := range insts {
@@ -471,8 +466,7 @@ func doEc2stop(c *cli.Context) {
 
 		ans, err := confirm("stop above instances?", false)
 		if !ans {
-			log.Fatalln("canceled instance stop action.")
-			return
+			return ErrExit("canceled instance stop action.")
 		}
 	}
 
@@ -482,8 +476,7 @@ func doEc2stop(c *cli.Context) {
 
 	resp, err := cli.StopInstances(ctx, params)
 	if err != nil {
-		log.Fatalf("error during stopping: %s", err.Error())
-		return
+		return ErrExit("error during stopping: %s", err.Error())
 	}
 
 	for _, status := range resp.StoppingInstances {
@@ -492,14 +485,16 @@ func doEc2stop(c *cli.Context) {
 		cState := convertNilString((*string)(&status.CurrentState.Name))
 		log.Printf("stopped %s: %s -> %s", id, pState, cState)
 	}
+
+	return nil
 }
 
-func doEc2type(c *cli.Context) {
+func doEc2type(c *cli.Context) error {
 	prepare(c)
 
 	region, err := getRegion(c)
 	if err != nil {
-		log.Fatalln(err)
+		return ErrExit("failed get region: %v", err)
 	}
 
 	instanceId := c.String(OPT_INSTANCE_ID)
@@ -508,13 +503,12 @@ func doEc2type(c *cli.Context) {
 
 		h, err := NewRnzooCStoreManager()
 		if err != nil {
-			log.Printf("can not load EC2: %s\n", err.Error())
+			return ErrExit("can not load EC2: %s\n", err.Error())
 		}
 
 		ids, err = h.ChooseEC2(region, myec2.EC2_STATE_STOPPED, true)
 		if err != nil {
-			log.Fatalf("error during selecting: %s", err.Error())
-			return
+			return ErrExit("error during selecting: %s", err.Error())
 		}
 
 	} else {
@@ -525,13 +519,11 @@ func doEc2type(c *cli.Context) {
 	if iType == "" {
 		chosenType, err := peco.Choose("Instance Type", "Please select Instance Type", "", EC2InstanceTypeList)
 		if err != nil {
-			log.Fatalf("error during select instance type: %s", err.Error())
-			return
+			return ErrExit("error during select instance type: %s", err.Error())
 		}
 
 		if len(chosenType) != 1 {
-			log.Fatal("multiple type selected. please single type.")
-			return
+			return ErrExit("multiple type selected. please single type.")
 		}
 
 		iType = chosenType[0].Value()
@@ -540,15 +532,13 @@ func doEc2type(c *cli.Context) {
 	ctx := context.TODO()
 	cli, err := myec2.MakeEC2Client(ctx, region)
 	if err != nil {
-		log.Printf("failed ec2 client initialization: %v", err)
-		return
+		return ErrExit("failed ec2 client initialization: %v", err)
 	}
 
 	if c.Bool(OPT_CONFIRM) {
 		insts, err := myec2.GetInstancesFromId(ctx, cli, ids...)
 		if err != nil {
-			log.Fatalln("failed retrieve instance info for confirm.")
-			return
+			return ErrExit("failed retrieve instance info for confirm.")
 		}
 
 		for _, ins := range insts {
@@ -565,8 +555,7 @@ func doEc2type(c *cli.Context) {
 
 		ans, err := confirm("modified above instance type to "+iType+"?", false)
 		if !ans {
-			log.Fatalln("canceled instance type change action.")
-			return
+			return ErrExit("canceled instance type change action.")
 		}
 	}
 
@@ -581,8 +570,7 @@ func doEc2type(c *cli.Context) {
 		// resp is empty
 		_, err := cli.ModifyInstanceAttribute(ctx, params)
 		if err != nil {
-			log.Fatalf("error during modify instance type: %s", err.Error())
-			return
+			return ErrExit("error during modify instance type: %s", err.Error())
 		}
 
 		log.Printf("%s is modified the instance type to %s", i, iType)
@@ -594,8 +582,7 @@ func doEc2type(c *cli.Context) {
 
 			resp, err := cli.StartInstances(ctx, params)
 			if err != nil {
-				log.Fatalf("error during starting instance: %s", err.Error())
-				return
+				return ErrExit("error during starting instance: %s", err.Error())
 			}
 
 			for _, status := range resp.StartingInstances {
@@ -606,6 +593,8 @@ func doEc2type(c *cli.Context) {
 			}
 		}
 	}
+
+	return nil
 }
 
 type EC2RunConfig struct {
@@ -780,30 +769,29 @@ func StoreSkeletonEC2RunConfigYaml(filePath string) error {
 	return cstore.StoreToYamlFile(filePath, []EC2RunConfig{s})
 }
 
-func doEc2run(c *cli.Context) {
+func doEc2run(c *cli.Context) error {
 	prepare(c)
 
 	if c.String(OPT_SKELETON) != "" {
 		err := StoreSkeletonEC2RunConfigYaml(c.String(OPT_SKELETON))
 		if err != nil {
-			log.Printf("can not store Skeleton config yaml: %v\n", err)
+			return ErrExit("can not store Skeleton config yaml: %v", err)
 		}
-
-		os.Exit(0)
+		return nil
 	}
 
 	region, err := getRegion(c)
 	if err != nil {
-		log.Fatalln(err)
+		return ErrExit("failed get region: %v", err)
 	}
 
 	args := c.Args()
-	if len(args) < 1 {
+	if args.Len() < 1 {
 		log.Fatal("required ec2 run config file.")
 	}
 
-	cList := make([]EC2RunConfig, 0, len(args))
-	for _, confPath := range args {
+	cList := make([]EC2RunConfig, 0, args.Len())
+	for _, confPath := range args.Slice() {
 		configs := make([]EC2RunConfig, 0, 1)
 		err := cstore.LoadFromYamlFile(confPath, &configs)
 		if err != nil {
@@ -816,8 +804,7 @@ func doEc2run(c *cli.Context) {
 	ctx := context.TODO()
 	cli, err := myec2.MakeEC2Client(ctx, region)
 	if err != nil {
-		log.Printf("failed ec2 client initialization: %v", err)
-		return
+		return ErrExit("failed ec2 client initialization: %v", err)
 	}
 
 	specifiedName := c.String(OPT_SPECIFY_NAME)
@@ -969,14 +956,16 @@ func doEc2run(c *cli.Context) {
 			}
 		}
 	}
+
+	return nil
 }
 
-func doEc2Terminate(c *cli.Context) {
+func doEc2Terminate(c *cli.Context) error {
 	prepare(c)
 
 	region, err := getRegion(c)
 	if err != nil {
-		log.Fatalln(err)
+		return ErrExit("failed get region: %v", err)
 	}
 
 	instanceId := c.String(OPT_INSTANCE_ID)
@@ -985,7 +974,7 @@ func doEc2Terminate(c *cli.Context) {
 
 		h, err := NewRnzooCStoreManager()
 		if err != nil {
-			log.Printf("can not load EC2: %s\n", err.Error())
+			return ErrExit("can not load EC2: %s", err.Error())
 		}
 
 		fState := myec2.EC2_STATE_STOPPED
@@ -994,8 +983,7 @@ func doEc2Terminate(c *cli.Context) {
 		}
 		ids, err = h.ChooseEC2(region, fState, true)
 		if err != nil {
-			log.Fatalf("error during selecting: %s", err.Error())
-			return
+			return ErrExit("error during selecting: %s", err.Error())
 		}
 
 	} else {
@@ -1003,22 +991,19 @@ func doEc2Terminate(c *cli.Context) {
 	}
 
 	if len(ids) == 0 {
-		log.Fatalln("there is no instance id.")
-		return
+		return ErrExit("there is no instance id.")
 	}
 
 	ctx := context.TODO()
 	cli, err := myec2.MakeEC2Client(ctx, region)
 	if err != nil {
-		log.Printf("failed ec2 client initialization: %v", err)
-		return
+		return ErrExit("failed ec2 client initialization: %v", err)
 	}
 
 	if !c.Bool(OPT_WITHOUT_CONFIRM) {
 		insts, err := myec2.GetInstancesFromId(ctx, cli, ids...)
 		if err != nil {
-			log.Fatalln("failed retrieve instance info for confirm.")
-			return
+			return ErrExit("failed retrieve instance info for confirm.")
 		}
 
 		for _, ins := range insts {
@@ -1035,8 +1020,7 @@ func doEc2Terminate(c *cli.Context) {
 
 		ans, err := confirm("you really want to terminate above instances?", false)
 		if !ans {
-			log.Fatalln("canceled instance termination.")
-			return
+			return ErrExit("canceled instance termination.")
 		}
 	}
 
@@ -1051,8 +1035,7 @@ func doEc2Terminate(c *cli.Context) {
 
 	resp, err := cli.TerminateInstances(ctx, params)
 	if err != nil {
-		log.Fatalf("error during terminate instance: %v", err)
-		return
+		return ErrExit("error during terminate instance: %v", err)
 	}
 
 	for _, status := range resp.TerminatingInstances {
@@ -1061,22 +1044,23 @@ func doEc2Terminate(c *cli.Context) {
 		cState := convertNilString((*string)(&status.CurrentState.Name))
 		log.Printf("terminated %s: %s -> %s", id, pState, cState)
 	}
+
+	return nil
 }
 
-func doEc2Tag(c *cli.Context) {
+func doEc2Tag(c *cli.Context) error {
 	prepare(c)
 
 	region, err := getRegion(c)
 	if err != nil {
-		log.Fatalln(err)
+		return ErrExit("failed get region: %v", err)
 	}
 
 	// check specified tag before select EC2 instances.
 	optTagPairs := c.String(OPT_TAG_PAIRS)
 	optDeleteKeys := c.String(OPT_TAG_DELETE_KEYS)
 	if optTagPairs == "" && optDeleteKeys == "" {
-		log.Fatalf("specify %s and/or %s option", OPT_TAG_PAIRS, OPT_TAG_DELETE_KEYS)
-		return
+		return ErrExit("specify %s and/or %s option", OPT_TAG_PAIRS, OPT_TAG_DELETE_KEYS)
 	}
 
 	instanceId := c.String(OPT_INSTANCE_ID)
@@ -1085,7 +1069,7 @@ func doEc2Tag(c *cli.Context) {
 
 		h, err := NewRnzooCStoreManager()
 		if err != nil {
-			log.Printf("can not load EC2: %s\n", err.Error())
+			return ErrExit("can not load EC2: %s\n", err.Error())
 		}
 
 		fState := myec2.EC2_STATE_RUNNING
@@ -1094,8 +1078,7 @@ func doEc2Tag(c *cli.Context) {
 		}
 		ids, err = h.ChooseEC2(region, fState, true)
 		if err != nil {
-			log.Fatalf("error during selecting: %s", err.Error())
-			return
+			return ErrExit("error during selecting: %s", err.Error())
 		}
 
 	} else {
@@ -1103,15 +1086,13 @@ func doEc2Tag(c *cli.Context) {
 	}
 
 	if len(ids) == 0 {
-		log.Fatalln("there is no instance id.")
-		return
+		return ErrExit("there is no instance id.")
 	}
 
 	ctx := context.TODO()
 	cli, err := myec2.MakeEC2Client(ctx, region)
 	if err != nil {
-		log.Printf("failed ec2 client initialization: %v", err)
-		return
+		return ErrExit("failed ec2 client initialization: %v", err)
 	}
 
 	// parse tag pairs ex) Key1=Value1,Key2=Value2
@@ -1139,8 +1120,7 @@ func doEc2Tag(c *cli.Context) {
 
 		_, err = cli.CreateTags(ctx, params)
 		if err != nil {
-			log.Fatalf("error during create tags to instance: %v", err)
-			return
+			return ErrExit("error during create tags to instance: %v", err)
 		}
 	}
 
@@ -1163,10 +1143,11 @@ func doEc2Tag(c *cli.Context) {
 
 		_, err = cli.DeleteTags(ctx, params)
 		if err != nil {
-			log.Fatalf("error during delete tags to instance: %v", err)
-			return
+			return ErrExit("error during delete tags to instance: %v", err)
 		}
 	}
+
+	return nil
 }
 
 func confirm(msg string, defaultAns bool) (bool, error) {
@@ -1224,19 +1205,19 @@ var commandAttachEIP = cli.Command{
 	Description: `allocate new EIP(allow reassociate) and associate it to the instance.`,
 	Action:      doAttachEIP,
 	Flags: []cli.Flag{
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  OPT_REGION + ", r",
 			Usage: EC2LIST_REGION_USAGE,
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  OPT_INSTANCE_ID,
 			Usage: "specify instance id.",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  OPT_REUSE,
 			Usage: "if there is EIP that has not associated, associate it. if not, allocate new address.",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  OPT_MOVE,
 			Usage: "this option was replaced. please use move-eip subcommand.",
 		},
@@ -1249,11 +1230,11 @@ var commandMoveEIP = cli.Command{
 	Description: "reallocate EIP(allow reassociate) to other instance.",
 	Action:      doMoveEIP,
 	Flags: []cli.Flag{
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  OPT_REGION + ", r",
 			Usage: EC2LIST_REGION_USAGE,
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  OPT_WITHOUT_CONFIRM,
 			Usage: "without confirm target before action (default action is do confirming)",
 		},
@@ -1266,31 +1247,31 @@ var commandDetachEIP = cli.Command{
 	Description: `disassociate EIP and release it.`,
 	Action:      doDetachEIP,
 	Flags: []cli.Flag{
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  OPT_REGION + ", r",
 			Usage: EC2LIST_REGION_USAGE,
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  OPT_INSTANCE_ID,
 			Usage: "specify instance id.",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  OPT_WITHOUT_RELEASE,
 			Usage: "does not release disassociated the address.",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  OPT_WITHOUT_CONFIRM,
 			Usage: "without confirm target before action (default action is do confirming)",
 		},
 	},
 }
 
-func doMoveEIP(c *cli.Context) {
+func doMoveEIP(c *cli.Context) error {
 	prepare(c)
 
 	region, err := getRegion(c)
 	if err != nil {
-		log.Fatalln(err)
+		return ErrExit("failed get region: %v", err)
 	}
 
 	ctx := context.TODO()
@@ -1298,19 +1279,18 @@ func doMoveEIP(c *cli.Context) {
 	allocIds, err := myec2.ChooseEIP(ctx, region)
 
 	if len(allocIds) == 0 {
-		log.Fatalf("error during selecting to EIP: %s", err.Error())
+		return ErrExit("error during selecting to EIP: %s", err.Error())
 	}
 
 	// to instance
 	h, err := NewRnzooCStoreManager()
 	if err != nil {
-		log.Printf("can not load EC2: %s\n", err.Error())
+		return ErrExit("can not load EC2: %s\n", err.Error())
 	}
 
 	ids, err := h.ChooseEC2(region, myec2.EC2_STATE_ANY, true)
 	if err != nil {
-		log.Fatalf("error during selecting: %s", err.Error())
-		return
+		return ErrExit("error during selecting: %s", err.Error())
 	}
 
 	// one instance
@@ -1318,26 +1298,23 @@ func doMoveEIP(c *cli.Context) {
 	if len(ids) >= 1 {
 		instanceId = ids[0]
 	} else {
-		log.Fatalf("error during selecting to instance: %s", err.Error())
+		return ErrExit("error during selecting to instance: %s", err.Error())
 	}
 
 	// moving
 	cli, err := myec2.MakeEC2Client(ctx, region)
 	if err != nil {
-		log.Printf("failed ec2 client initialization: %v", err)
-		return
+		return ErrExit("failed ec2 client initialization: %v", err)
 	}
 
 	if !c.Bool(OPT_WITHOUT_CONFIRM) {
 		insts, err := myec2.GetInstancesFromId(ctx, cli, instanceId)
 		if err != nil {
-			log.Fatalln("failed retrieve instance info for confirm.")
-			return
+			return ErrExit("failed retrieve instance info for confirm.")
 		}
 
 		if len(insts) != 1 {
-			log.Fatalln("the selected from instance was deleted? please retry.")
-			return
+			return ErrExit("the selected from instance was deleted? please retry.")
 		}
 
 		name := "[no Name tag instance]"
@@ -1355,43 +1332,41 @@ func doMoveEIP(c *cli.Context) {
 
 		ans, err := confirm("move above EIP?", false)
 		if !ans {
-			log.Fatalln("canceled move EIP action.")
-			return
+			return ErrExit("canceled move EIP action.")
 		}
 	}
 
 	assocId, err := myec2.AssociateEIP(ctx, cli, allocIds[0].AllocationId, instanceId)
 	if err != nil {
-		log.Fatalf("error during moving EIP: %s", err.Error())
+		return ErrExit("error during moving EIP: %s", err.Error())
 	}
 
-	log.Printf("associated association_id:%s\tpublic_ip:%s\tinstance_id:%s", convertNilString(assocId), "EIP", instanceId)
+	return OkExit("associated association_id:%s\tpublic_ip:%s\tinstance_id:%s", convertNilString(assocId), "EIP", instanceId)
 }
 
 // allocate new EIP and associate.
-func doAttachEIP(c *cli.Context) {
+func doAttachEIP(c *cli.Context) error {
 	prepare(c)
 
 	region, err := getRegion(c)
 	if err != nil {
-		log.Fatalln(err)
+		return ErrExit("failed get region: %v", err)
 	}
 
 	if c.Bool(OPT_MOVE) {
-		log.Fatalln("this option was replaced. please use move-eip subcommand.")
+		return ErrExit("this option was replaced. please use move-eip subcommand.")
 	}
 
 	instanceId := c.String(OPT_INSTANCE_ID)
 	if instanceId == "" {
 		h, err := NewRnzooCStoreManager()
 		if err != nil {
-			log.Printf("can not load EC2: %s\n", err.Error())
+			return ErrExit("can not load EC2: %s\n", err.Error())
 		}
 
 		ids, err := h.ChooseEC2(region, myec2.EC2_STATE_ANY, true)
 		if err != nil {
-			log.Fatalf("error during selecting: %s", err.Error())
-			return
+			return ErrExit("error during selecting: %s", err.Error())
 		}
 
 		// one instance
@@ -1401,7 +1376,7 @@ func doAttachEIP(c *cli.Context) {
 	} else {
 		err := validateInstanceId(instanceId)
 		if err != nil {
-			log.Fatalf("invalid instance id format: %s", err.Error())
+			return ErrExit("invalid instance id format: %s", err.Error())
 		}
 	}
 
@@ -1410,8 +1385,7 @@ func doAttachEIP(c *cli.Context) {
 	ctx := context.TODO()
 	cli, err := myec2.MakeEC2Client(ctx, region)
 	if err != nil {
-		log.Printf("failed ec2 client initialization: %v", err)
-		return
+		return ErrExit("failed ec2 client initialization: %v", err)
 	}
 
 	var allocId string
@@ -1419,7 +1393,7 @@ func doAttachEIP(c *cli.Context) {
 	if reuseEIP {
 		address, err := myec2.GetNotAssociateEIP(ctx, cli)
 		if err != nil {
-			log.Printf("failed no associate address so allocate new address...")
+			return ErrExit("failed no associate address so allocate new address...")
 		}
 
 		// if exists EIP
@@ -1432,7 +1406,7 @@ func doAttachEIP(c *cli.Context) {
 	if allocId == "" {
 		aid, pip, err := myec2.AllocateEIP(ctx, cli)
 		if err != nil {
-			log.Fatalf("failed allocation address:%s", err.Error())
+			return ErrExit("failed allocation address:%s", err.Error())
 		}
 		allocId = convertNilString(aid)
 		ip = convertNilString(pip)
@@ -1442,19 +1416,19 @@ func doAttachEIP(c *cli.Context) {
 
 	associationId, err := myec2.AssociateEIP(ctx, cli, allocId, instanceId)
 	if err != nil {
-		log.Fatalf("failed associate address:%s", err.Error())
+		return ErrExit("failed associate address:%s", err.Error())
 	}
 
-	log.Printf("associated association_id:%s\tpublic_ip:%s\tinstance_id:%s", convertNilString(associationId), ip, instanceId)
+	return OkExit("associated association_id:%s\tpublic_ip:%s\tinstance_id:%s", convertNilString(associationId), ip, instanceId)
 }
 
 // desassociate EIP and release.
-func doDetachEIP(c *cli.Context) {
+func doDetachEIP(c *cli.Context) error {
 	prepare(c)
 
 	region, err := getRegion(c)
 	if err != nil {
-		log.Fatalln(err)
+		return ErrExit("failed get region: %v", err)
 	}
 
 	withoutRelease := c.Bool(OPT_WITHOUT_RELEASE)
@@ -1468,8 +1442,7 @@ func doDetachEIP(c *cli.Context) {
 
 		ids, err := h.ChooseEC2(region, myec2.EC2_STATE_ANY, true)
 		if err != nil {
-			log.Fatalf("error during selecting: %s", err.Error())
-			return
+			return ErrExit("error during selecting: %s", err.Error())
 		}
 
 		// one instance
@@ -1479,32 +1452,29 @@ func doDetachEIP(c *cli.Context) {
 	} else {
 		err := validateInstanceId(instanceId)
 		if err != nil {
-			log.Fatalf("invalid instance id format: %s", err.Error())
+			return ErrExit("invalid instance id format: %s", err.Error())
 		}
 	}
 
 	ctx := context.TODO()
 	cli, err := myec2.MakeEC2Client(ctx, region)
 	if err != nil {
-		log.Printf("failed ec2 client initialization: %v", err)
-		return
+		return ErrExit("failed ec2 client initialization: %v", err)
 	}
 
 	address, err := myec2.GetEIPFromInstance(ctx, cli, instanceId)
 	if err != nil {
-		log.Fatalf(err.Error())
+		return ErrExit("failed get EIP from instance: %v", err)
 	}
 
 	if !c.Bool(OPT_WITHOUT_CONFIRM) {
 		insts, err := myec2.GetInstancesFromId(ctx, cli, instanceId)
 		if err != nil {
-			log.Fatalln("failed retrieve instance info for confirm.")
-			return
+			return ErrExit("failed retrieve instance info for confirm.")
 		}
 
 		if len(insts) != 1 {
-			log.Fatalln("the selected from instance was deleted? please retry.")
-			return
+			return ErrExit("the selected from instance was deleted? please retry.")
 		}
 
 		name := "[no Name tag instance]"
@@ -1519,8 +1489,7 @@ func doDetachEIP(c *cli.Context) {
 
 		ans, err := confirm("you really want to detach above EIP?", false)
 		if !ans {
-			log.Fatalln("canceled detach EIP action.")
-			return
+			return ErrExit("canceled detach EIP action.")
 		}
 	}
 
@@ -1530,7 +1499,7 @@ func doDetachEIP(c *cli.Context) {
 
 	err = myec2.DisassociateEIP(ctx, cli, convertNilString(address.AssociationId))
 	if err != nil {
-		log.Fatalf("failed disassociate address:%s", err.Error())
+		return ErrExit("failed disassociate address:%s", err.Error())
 	}
 
 	log.Printf("disassociated assciation_id:%s\tpublic_ip:%s\tinstance_id:%s", associationId, ip, iid)
@@ -1538,31 +1507,33 @@ func doDetachEIP(c *cli.Context) {
 	if !withoutRelease {
 		err := myec2.ReleaseEIP(ctx, cli, convertNilString(address.AllocationId))
 		if err != nil {
-			log.Fatalf("failed release address:%s", err.Error())
+			return ErrExit("failed release address:%s", err.Error())
 		}
 		log.Printf("released allocation_id:%s\tpublic_ip:%s", convertNilString(address.AllocationId), ip)
 	}
+
+	return nil
 }
 
 // cloudwatch
 var commandGetBilling = cli.Command{
 	Name:        "billing-price",
-	ShortName:   "price",
+	Aliases:     []string{"price"},
 	Usage:       "show billing price EstimatedCharges (CAUTION: NOT real time)",
 	Description: `the billing price is get from CloudWatch AWS/Billing.`,
 	Action:      doShowBilling,
 	Flags:       []cli.Flag{},
 }
 
-func doShowBilling(c *cli.Context) {
+func doShowBilling(c *cli.Context) error {
 	prepare(c)
 
 	b, err := GetBillingEstimatedCharges()
 	if err != nil {
-		log.Fatalf("failed get billing price: %v", err)
+		return ErrExit("failed get billing price: %v", err)
 	}
 
-	log.Printf("%s %.2f USD\n", b.Label, b.Price)
+	return OkExit("%s %.2f USD", b.Label, b.Price)
 }
 
 func NewCStoreManager() (*cstore.Manager, error) {

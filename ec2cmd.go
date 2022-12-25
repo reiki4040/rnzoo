@@ -92,16 +92,19 @@ var commandEc2list = cli.Command{
 	Action:      doEc2list,
 	Flags: []cli.Flag{
 		&cli.BoolFlag{
-			Name:  OPT_FORCE + ", f",
-			Usage: EC2LIST_FORCE_USAGE,
+			Name:    OPT_FORCE,
+			Aliases: []string{"f"},
+			Usage:   EC2LIST_FORCE_USAGE,
 		},
 		&cli.StringFlag{
-			Name:  OPT_REGION + ", r",
-			Usage: EC2LIST_REGION_USAGE,
+			Name:    OPT_REGION,
+			Aliases: []string{"r"},
+			Usage:   EC2LIST_REGION_USAGE,
 		},
 		&cli.BoolFlag{
-			Name:  OPT_TSV + ", t",
-			Usage: EC2LIST_TSV,
+			Name:    OPT_TSV,
+			Aliases: []string{"t"},
+			Usage:   EC2LIST_TSV,
 		},
 	},
 }
@@ -114,8 +117,9 @@ var commandEc2start = cli.Command{
 	Action:      doEc2start,
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  OPT_REGION + ", r",
-			Usage: EC2LIST_REGION_USAGE,
+			Name:    OPT_REGION,
+			Aliases: []string{"r"},
+			Usage:   EC2LIST_REGION_USAGE,
 		},
 		&cli.StringFlag{
 			Name:  OPT_INSTANCE_ID,
@@ -136,8 +140,9 @@ var commandEc2stop = cli.Command{
 	Action:      doEc2stop,
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  OPT_REGION + ", r",
-			Usage: EC2LIST_REGION_USAGE,
+			Name:    OPT_REGION,
+			Aliases: []string{"r"},
+			Usage:   EC2LIST_REGION_USAGE,
 		},
 		&cli.StringFlag{
 			Name:  OPT_INSTANCE_ID,
@@ -158,16 +163,18 @@ var commandEc2type = cli.Command{
 	Action:      doEc2type,
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  OPT_REGION + ", r",
-			Usage: EC2LIST_REGION_USAGE,
+			Name:    OPT_REGION,
+			Aliases: []string{"r"},
+			Usage:   EC2LIST_REGION_USAGE,
 		},
 		&cli.StringFlag{
 			Name:  OPT_INSTANCE_ID,
 			Usage: "specify already stopped instance id.",
 		},
 		&cli.StringFlag{
-			Name:  OPT_I_TYPE + ", t",
-			Usage: "specify new instance type.",
+			Name:    OPT_I_TYPE,
+			Aliases: []string{"t"},
+			Usage:   "specify new instance type.",
 		},
 		&cli.BoolFlag{
 			Name:  OPT_START,
@@ -196,8 +203,9 @@ var commandEc2run = cli.Command{
 			Usage: "store skeleton config yaml to specified file path",
 		},
 		&cli.StringFlag{
-			Name:  OPT_REGION + ", r",
-			Usage: EC2LIST_REGION_USAGE,
+			Name:    OPT_REGION,
+			Aliases: []string{"r"},
+			Usage:   EC2LIST_REGION_USAGE,
 		},
 		&cli.StringFlag{
 			Name:  OPT_AMI_ID,
@@ -225,8 +233,9 @@ var commandEc2terminate = cli.Command{
 	Action:      doEc2Terminate,
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  OPT_REGION + ", r",
-			Usage: EC2LIST_REGION_USAGE,
+			Name:    OPT_REGION,
+			Aliases: []string{"r"},
+			Usage:   EC2LIST_REGION_USAGE,
 		},
 		&cli.StringFlag{
 			Name:  OPT_INSTANCE_ID,
@@ -259,8 +268,9 @@ var commandEc2Tag = cli.Command{
 	Action:      doEc2Tag,
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  OPT_REGION + ", r",
-			Usage: EC2LIST_REGION_USAGE,
+			Name:    OPT_REGION,
+			Aliases: []string{"r"},
+			Usage:   EC2LIST_REGION_USAGE,
 		},
 		&cli.StringFlag{
 			Name:  OPT_INSTANCE_ID,
@@ -1206,8 +1216,9 @@ var commandAttachEIP = cli.Command{
 	Action:      doAttachEIP,
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  OPT_REGION + ", r",
-			Usage: EC2LIST_REGION_USAGE,
+			Name:    OPT_REGION,
+			Aliases: []string{"r"},
+			Usage:   EC2LIST_REGION_USAGE,
 		},
 		&cli.StringFlag{
 			Name:  OPT_INSTANCE_ID,
@@ -1231,8 +1242,9 @@ var commandMoveEIP = cli.Command{
 	Action:      doMoveEIP,
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  OPT_REGION + ", r",
-			Usage: EC2LIST_REGION_USAGE,
+			Name:    OPT_REGION,
+			Aliases: []string{"r"},
+			Usage:   EC2LIST_REGION_USAGE,
 		},
 		&cli.BoolFlag{
 			Name:  OPT_WITHOUT_CONFIRM,
@@ -1248,8 +1260,9 @@ var commandDetachEIP = cli.Command{
 	Action:      doDetachEIP,
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  OPT_REGION + ", r",
-			Usage: EC2LIST_REGION_USAGE,
+			Name:    OPT_REGION,
+			Aliases: []string{"r"},
+			Usage:   EC2LIST_REGION_USAGE,
 		},
 		&cli.StringFlag{
 			Name:  OPT_INSTANCE_ID,

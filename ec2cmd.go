@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"fmt"
 	"log"
 	"os"
@@ -385,7 +384,7 @@ func doEc2start(c *cli.Context) error {
 		ids = []string{instanceId}
 	}
 
-	ctx := context.TODO()
+	ctx := c.Context
 	cli, err := myec2.MakeEC2Client(ctx, region)
 	if err != nil {
 		return ErrExit("failed ec2 client initialization: %v", err)
@@ -460,7 +459,7 @@ func doEc2stop(c *cli.Context) error {
 		ids = []string{instanceId}
 	}
 
-	ctx := context.TODO()
+	ctx := c.Context
 	cli, err := myec2.MakeEC2Client(ctx, region)
 	if err != nil {
 		return ErrExit("failed ec2 client initialization: %v", err)
@@ -549,7 +548,7 @@ func doEc2type(c *cli.Context) error {
 		iType = chosenType[0].Value()
 	}
 
-	ctx := context.TODO()
+	ctx := c.Context
 	cli, err := myec2.MakeEC2Client(ctx, region)
 	if err != nil {
 		return ErrExit("failed ec2 client initialization: %v", err)
@@ -821,7 +820,7 @@ func doEc2run(c *cli.Context) error {
 		cList = append(cList, configs...)
 	}
 
-	ctx := context.TODO()
+	ctx := c.Context
 	cli, err := myec2.MakeEC2Client(ctx, region)
 	if err != nil {
 		return ErrExit("failed ec2 client initialization: %v", err)
@@ -1014,7 +1013,7 @@ func doEc2Terminate(c *cli.Context) error {
 		return ErrExit("there is no instance id.")
 	}
 
-	ctx := context.TODO()
+	ctx := c.Context
 	cli, err := myec2.MakeEC2Client(ctx, region)
 	if err != nil {
 		return ErrExit("failed ec2 client initialization: %v", err)
@@ -1109,7 +1108,7 @@ func doEc2Tag(c *cli.Context) error {
 		return ErrExit("there is no instance id.")
 	}
 
-	ctx := context.TODO()
+	ctx := c.Context
 	cli, err := myec2.MakeEC2Client(ctx, region)
 	if err != nil {
 		return ErrExit("failed ec2 client initialization: %v", err)
@@ -1300,7 +1299,7 @@ func doMoveEIP(c *cli.Context) error {
 		return ErrExit("failed get region: %v", err)
 	}
 
-	ctx := context.TODO()
+	ctx := c.Context
 	// EIP listing
 	allocIds, err := myec2.ChooseEIP(ctx, region)
 
@@ -1408,7 +1407,7 @@ func doAttachEIP(c *cli.Context) error {
 
 	reuseEIP := c.Bool(OPT_REUSE)
 
-	ctx := context.TODO()
+	ctx := c.Context
 	cli, err := myec2.MakeEC2Client(ctx, region)
 	if err != nil {
 		return ErrExit("failed ec2 client initialization: %v", err)
@@ -1481,7 +1480,7 @@ func doDetachEIP(c *cli.Context) error {
 		}
 	}
 
-	ctx := context.TODO()
+	ctx := c.Context
 	cli, err := myec2.MakeEC2Client(ctx, region)
 	if err != nil {
 		return ErrExit("failed ec2 client initialization: %v", err)

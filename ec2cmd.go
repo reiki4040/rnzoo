@@ -342,12 +342,12 @@ func doEc2list(c *cli.Context) error {
 
 	h, err := NewRnzooCStoreManager()
 	if err != nil {
-		log.Printf("can not load EC2: %s\n", err.Error())
+		log.Printf("can not load EC2: %s", err.Error())
 	}
 
 	ec2list, err := h.LoadChoosableEC2List(region, myec2.EC2_STATE_ANY, isReload)
 	if err != nil {
-		log.Printf("can not load EC2: %s\n", err.Error())
+		log.Printf("can not load EC2: %s", err.Error())
 	}
 
 	for _, i := range ec2list {
@@ -374,7 +374,7 @@ func doEc2start(c *cli.Context) error {
 	if instanceId == "" {
 		h, err := NewRnzooCStoreManager()
 		if err != nil {
-			return ErrExit("can not load EC2: %s", err.Error())
+			log.Printf("can not load EC2: %v", err)
 		}
 
 		ids, err = h.ChooseEC2(region, myec2.EC2_STATE_STOPPED, true)
@@ -448,7 +448,7 @@ func doEc2stop(c *cli.Context) error {
 
 		h, err := NewRnzooCStoreManager()
 		if err != nil {
-			return ErrExit("can not load EC2: %s\n", err.Error())
+			log.Printf("can not load EC2: %v", err)
 		}
 
 		ids, err = h.ChooseEC2(region, myec2.EC2_STATE_RUNNING, true)
@@ -523,7 +523,7 @@ func doEc2type(c *cli.Context) error {
 
 		h, err := NewRnzooCStoreManager()
 		if err != nil {
-			return ErrExit("can not load EC2: %s\n", err.Error())
+			log.Printf("can not load EC2: %v", err)
 		}
 
 		ids, err = h.ChooseEC2(region, myec2.EC2_STATE_STOPPED, true)
@@ -994,7 +994,7 @@ func doEc2Terminate(c *cli.Context) error {
 
 		h, err := NewRnzooCStoreManager()
 		if err != nil {
-			return ErrExit("can not load EC2: %s", err.Error())
+			log.Printf("can not load EC2: %v", err)
 		}
 
 		fState := myec2.EC2_STATE_STOPPED
@@ -1089,7 +1089,7 @@ func doEc2Tag(c *cli.Context) error {
 
 		h, err := NewRnzooCStoreManager()
 		if err != nil {
-			return ErrExit("can not load EC2: %s\n", err.Error())
+			log.Printf("can not load EC2: %v", err)
 		}
 
 		fState := myec2.EC2_STATE_RUNNING
@@ -1311,7 +1311,7 @@ func doMoveEIP(c *cli.Context) error {
 	// to instance
 	h, err := NewRnzooCStoreManager()
 	if err != nil {
-		return ErrExit("can not load EC2: %s\n", err.Error())
+		log.Printf("can not load EC2: %v", err)
 	}
 
 	ids, err := h.ChooseEC2(region, myec2.EC2_STATE_ANY, true)
@@ -1387,7 +1387,7 @@ func doAttachEIP(c *cli.Context) error {
 	if instanceId == "" {
 		h, err := NewRnzooCStoreManager()
 		if err != nil {
-			return ErrExit("can not load EC2: %s\n", err.Error())
+			log.Printf("can not load EC2: %v", err)
 		}
 
 		ids, err := h.ChooseEC2(region, myec2.EC2_STATE_ANY, true)
@@ -1463,9 +1463,8 @@ func doDetachEIP(c *cli.Context) error {
 	if instanceId == "" {
 		h, err := NewRnzooCStoreManager()
 		if err != nil {
-			log.Printf("can not load EC2: %s\n", err.Error())
+			log.Printf("can not load EC2: %v", err)
 		}
-
 		ids, err := h.ChooseEC2(region, myec2.EC2_STATE_ANY, true)
 		if err != nil {
 			return ErrExit("error during selecting: %s", err.Error())

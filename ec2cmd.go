@@ -331,7 +331,7 @@ func doEc2list(c *cli.Context) error {
 
 	region, err := getRegion(c)
 	if err != nil {
-		return cli.Exit(err.Error(), 1)
+		return ErrExit("failed get region: %v", err)
 	}
 
 	err = CreateRnzooDir()
@@ -814,7 +814,7 @@ func doEc2run(c *cli.Context) error {
 		configs := make([]EC2RunConfig, 0, 1)
 		err := cstore.LoadFromYamlFile(confPath, &configs)
 		if err != nil {
-			log.Fatalf("failed load conf file: %v", err)
+			return ErrExit("failed load conf file: %v", err)
 		}
 
 		cList = append(cList, configs...)
@@ -871,14 +871,14 @@ func doEc2run(c *cli.Context) error {
 
 			replacedNameTag, err := nr.StringWithTemplate(l.NameTagTemplate)
 			if err != nil {
-				log.Fatalf("error during replacing name tag template: %v", err)
+				return ErrExit("error during replacing name tag template: %v", err)
 			}
 			debug(replacedNameTag)
 
 			res, err := launcher.Launch(ctx, cli, l.SubnetId, 1, c.Bool(OPT_DRYRUN))
 			if err != nil {
 				// TODO if dry run error then next.
-				log.Fatalf("error during starting instance: %s", err.Error())
+				return ErrExit("error during starting instance: %s", err.Error())
 			}
 			debug(res)
 

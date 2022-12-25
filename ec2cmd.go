@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -11,10 +12,11 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/codegangsta/cli"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 
 	"github.com/reiki4040/cstore"
 	"github.com/reiki4040/peco"
@@ -346,7 +348,7 @@ func doEc2start(c *cli.Context) {
 	}
 
 	instanceId := c.String(OPT_INSTANCE_ID)
-	var ids []*string
+	var ids []string
 	if instanceId == "" {
 
 		h, err := NewRnzooCStoreManager()
@@ -361,16 +363,18 @@ func doEc2start(c *cli.Context) {
 		}
 
 	} else {
-		ids = []*string{aws.String(instanceId)}
+		ids = []string{instanceId}
 	}
 
-	sess := session.Must(session.NewSession(&aws.Config{
-		Region: aws.String(region),
-	}))
-	cli := ec2.New(sess)
+	ctx := context.TODO()
+	cli, err := myec2.MakeEC2Client(ctx, region)
+	if err != nil {
+		log.Printf("failed ec2 client initialization: %v", err)
+		return
+	}
 
 	if c.Bool(OPT_CONFIRM) {
-		insts, err := myec2.GetInstancesFromId(cli, ids...)
+		insts, err := myec2.GetInstancesFromId(ctx, cli, ids...)
 		if err != nil {
 			log.Fatalln("failed retrieve instance info for confirm.")
 			return
@@ -399,7 +403,7 @@ func doEc2start(c *cli.Context) {
 		InstanceIds: ids,
 	}
 
-	resp, err := cli.StartInstances(params)
+	resp, err := cli.StartInstances(ctx, params)
 	if err != nil {
 		log.Fatalf("error during launching: %s", err.Error())
 		return
@@ -407,8 +411,8 @@ func doEc2start(c *cli.Context) {
 
 	for _, status := range resp.StartingInstances {
 		id := convertNilString(status.InstanceId)
-		pState := convertNilString(status.PreviousState.Name)
-		cState := convertNilString(status.CurrentState.Name)
+		pState := convertNilString((*string)(&status.PreviousState.Name))
+		cState := convertNilString((*string)(&status.CurrentState.Name))
 		log.Printf("launched %s: %s -> %s", id, pState, cState)
 	}
 }
@@ -422,7 +426,7 @@ func doEc2stop(c *cli.Context) {
 	}
 
 	instanceId := c.String(OPT_INSTANCE_ID)
-	var ids []*string
+	var ids []string
 	if instanceId == "" {
 
 		h, err := NewRnzooCStoreManager()
@@ -437,16 +441,17 @@ func doEc2stop(c *cli.Context) {
 		}
 
 	} else {
-		ids = []*string{aws.String(instanceId)}
+		ids = []string{instanceId}
 	}
 
-	sess := session.Must(session.NewSession(&aws.Config{
-		Region: aws.String(region),
-	}))
-	cli := ec2.New(sess)
+	ctx := context.TODO()
+	cli, err := myec2.MakeEC2Client(ctx, region)
+	if err != nil {
+		log.Printf("failed ec2 client initialization: %v", err)
+	}
 
 	if !c.Bool(OPT_WITHOUT_CONFIRM) {
-		insts, err := myec2.GetInstancesFromId(cli, ids...)
+		insts, err := myec2.GetInstancesFromId(ctx, cli, ids...)
 		if err != nil {
 			log.Fatalln("failed retrieve instance info for confirm.")
 			return
@@ -475,7 +480,7 @@ func doEc2stop(c *cli.Context) {
 		InstanceIds: ids,
 	}
 
-	resp, err := cli.StopInstances(params)
+	resp, err := cli.StopInstances(ctx, params)
 	if err != nil {
 		log.Fatalf("error during stopping: %s", err.Error())
 		return
@@ -483,8 +488,8 @@ func doEc2stop(c *cli.Context) {
 
 	for _, status := range resp.StoppingInstances {
 		id := convertNilString(status.InstanceId)
-		pState := convertNilString(status.PreviousState.Name)
-		cState := convertNilString(status.CurrentState.Name)
+		pState := convertNilString((*string)(&status.PreviousState.Name))
+		cState := convertNilString((*string)(&status.CurrentState.Name))
 		log.Printf("stopped %s: %s -> %s", id, pState, cState)
 	}
 }
@@ -498,7 +503,7 @@ func doEc2type(c *cli.Context) {
 	}
 
 	instanceId := c.String(OPT_INSTANCE_ID)
-	var ids []*string
+	var ids []string
 	if instanceId == "" {
 
 		h, err := NewRnzooCStoreManager()
@@ -513,7 +518,7 @@ func doEc2type(c *cli.Context) {
 		}
 
 	} else {
-		ids = []*string{aws.String(instanceId)}
+		ids = []string{instanceId}
 	}
 
 	iType := c.String(OPT_I_TYPE)
@@ -532,13 +537,15 @@ func doEc2type(c *cli.Context) {
 		iType = chosenType[0].Value()
 	}
 
-	sess := session.Must(session.NewSession(&aws.Config{
-		Region: aws.String(region),
-	}))
-	cli := ec2.New(sess)
+	ctx := context.TODO()
+	cli, err := myec2.MakeEC2Client(ctx, region)
+	if err != nil {
+		log.Printf("failed ec2 client initialization: %v", err)
+		return
+	}
 
 	if c.Bool(OPT_CONFIRM) {
-		insts, err := myec2.GetInstancesFromId(cli, ids...)
+		insts, err := myec2.GetInstancesFromId(ctx, cli, ids...)
 		if err != nil {
 			log.Fatalln("failed retrieve instance info for confirm.")
 			return
@@ -553,7 +560,7 @@ func doEc2type(c *cli.Context) {
 				}
 			}
 
-			fmt.Printf("%s\t%s\t%s\t%s\n", convertNilString(ins.InstanceId), name, convertNilString(ins.InstanceType), convertNilString(ins.PrivateIpAddress))
+			fmt.Printf("%s\t%s\t%s\t%s\n", convertNilString(ins.InstanceId), name, convertNilString((*string)(&ins.InstanceType)), convertNilString(ins.PrivateIpAddress))
 		}
 
 		ans, err := confirm("modified above instance type to "+iType+"?", false)
@@ -565,27 +572,27 @@ func doEc2type(c *cli.Context) {
 
 	for _, i := range ids {
 		params := &ec2.ModifyInstanceAttributeInput{
-			InstanceId: i,
-			InstanceType: &ec2.AttributeValue{
+			InstanceId: aws.String(i),
+			InstanceType: &types.AttributeValue{
 				Value: aws.String(iType),
 			},
 		}
 
 		// resp is empty
-		_, err := cli.ModifyInstanceAttribute(params)
+		_, err := cli.ModifyInstanceAttribute(ctx, params)
 		if err != nil {
 			log.Fatalf("error during modify instance type: %s", err.Error())
 			return
 		}
 
-		log.Printf("%s is modified the instance type to %s", *i, iType)
+		log.Printf("%s is modified the instance type to %s", i, iType)
 
 		if c.Bool(OPT_START) {
 			params := &ec2.StartInstancesInput{
-				InstanceIds: []*string{i},
+				InstanceIds: []string{i},
 			}
 
-			resp, err := cli.StartInstances(params)
+			resp, err := cli.StartInstances(ctx, params)
 			if err != nil {
 				log.Fatalf("error during starting instance: %s", err.Error())
 				return
@@ -593,8 +600,8 @@ func doEc2type(c *cli.Context) {
 
 			for _, status := range resp.StartingInstances {
 				id := convertNilString(status.InstanceId)
-				pState := convertNilString(status.PreviousState.Name)
-				cState := convertNilString(status.CurrentState.Name)
+				pState := convertNilString((*string)(&status.PreviousState.Name))
+				cState := convertNilString((*string)(&status.CurrentState.Name))
 				log.Printf("launched %s: %s -> %s", id, pState, cState)
 			}
 		}
@@ -641,9 +648,9 @@ type EC2RunConfigLaunch struct {
 }
 
 func (c *EC2RunConfig) genLauncher() *myec2.Launcher {
-	sgIds := make([]*string, 0, len(c.SecurityGroupIds))
+	sgIds := make([]string, 0, len(c.SecurityGroupIds))
 	for _, sgId := range c.SecurityGroupIds {
-		sgIds = append(sgIds, aws.String(sgId))
+		sgIds = append(sgIds, sgId)
 	}
 
 	var roleName *string
@@ -806,10 +813,12 @@ func doEc2run(c *cli.Context) {
 		cList = append(cList, configs...)
 	}
 
-	sess := session.Must(session.NewSession(&aws.Config{
-		Region: aws.String(region),
-	}))
-	cli := ec2.New(sess)
+	ctx := context.TODO()
+	cli, err := myec2.MakeEC2Client(ctx, region)
+	if err != nil {
+		log.Printf("failed ec2 client initialization: %v", err)
+		return
+	}
 
 	specifiedName := c.String(OPT_SPECIFY_NAME)
 
@@ -818,13 +827,13 @@ func doEc2run(c *cli.Context) {
 			continue
 		}
 
-		tags := make([]*ec2.Tag, 0, len(conf.Tags))
+		tags := make([]types.Tag, 0, len(conf.Tags))
 		for _, t := range conf.Tags {
-			ec2t := ec2.Tag{
+			ec2t := types.Tag{
 				Key:   aws.String(t.Key),
 				Value: aws.String(t.Value),
 			}
-			tags = append(tags, &ec2t)
+			tags = append(tags, ec2t)
 		}
 
 		launcher := conf.genLauncher()
@@ -860,21 +869,21 @@ func doEc2run(c *cli.Context) {
 			}
 			debug(replacedNameTag)
 
-			res, err := launcher.Launch(cli, l.SubnetId, 1, c.Bool(OPT_DRYRUN))
+			res, err := launcher.Launch(ctx, cli, l.SubnetId, 1, c.Bool(OPT_DRYRUN))
 			if err != nil {
 				// TODO if dry run error then next.
 				log.Fatalf("error during starting instance: %s", err.Error())
 			}
 			debug(res)
 
-			nameTag := &ec2.Tag{
+			nameTag := types.Tag{
 				Key:   aws.String("Name"),
 				Value: aws.String(replacedNameTag),
 			}
 
 			for _, ins := range res.Instances {
-				resources := make([]*string, 0, 3)
-				resources = append(resources, ins.InstanceId)
+				resources := make([]string, 0, 3)
+				resources = append(resources, *ins.InstanceId)
 
 				retrieveErrs := make([]error, 0, 3)
 				for i = 0; i < 3; i++ {
@@ -883,7 +892,7 @@ func doEc2run(c *cli.Context) {
 					// DescribeInstance that RunInstance same time too.
 					// so sleep a second(or few second?)
 					time.Sleep(500 * time.Millisecond)
-					devMaps, err := myec2.GetBlockDeviceMappings(cli, *ins.InstanceId)
+					devMaps, err := myec2.GetBlockDeviceMappings(ctx, cli, *ins.InstanceId)
 
 					if err != nil {
 						retrieveErrs = append(retrieveErrs, err)
@@ -897,7 +906,7 @@ func doEc2run(c *cli.Context) {
 					}
 
 					for _, bdm := range devMaps {
-						resources = append(resources, bdm.Ebs.VolumeId)
+						resources = append(resources, *bdm.Ebs.VolumeId)
 					}
 
 					retrieveErrs = []error{}
@@ -914,9 +923,9 @@ func doEc2run(c *cli.Context) {
 					Tags: append(tags, nameTag),
 				}
 
-				_, err := cli.CreateTags(tagp)
+				_, err := cli.CreateTags(ctx, tagp)
 				if err != nil {
-					log.Println(fmt.Sprintf("failed tagging so skipped %s: %v\n", ins.InstanceId, err))
+					log.Printf("failed tagging so skipped %s: %v\n", ins.InstanceId, err)
 				}
 
 				output := &EC2RunOutput{
@@ -935,11 +944,11 @@ func doEc2run(c *cli.Context) {
 
 				idx := strings.Index(outputTemplate, "{{.PublicIp}}")
 				if idx != -1 {
-					insIds := []*string{ins.InstanceId}
+					insIds := []string{*ins.InstanceId}
 					descIn := &ec2.DescribeInstancesInput{
 						InstanceIds: insIds,
 					}
-					res, err := cli.DescribeInstances(descIn)
+					res, err := cli.DescribeInstances(ctx, descIn)
 					if err != nil {
 						log.Printf("failed desc instance: %s", err)
 						continue
@@ -971,7 +980,7 @@ func doEc2Terminate(c *cli.Context) {
 	}
 
 	instanceId := c.String(OPT_INSTANCE_ID)
-	var ids []*string
+	var ids []string
 	if instanceId == "" {
 
 		h, err := NewRnzooCStoreManager()
@@ -990,7 +999,7 @@ func doEc2Terminate(c *cli.Context) {
 		}
 
 	} else {
-		ids = []*string{aws.String(instanceId)}
+		ids = []string{instanceId}
 	}
 
 	if len(ids) == 0 {
@@ -998,13 +1007,15 @@ func doEc2Terminate(c *cli.Context) {
 		return
 	}
 
-	sess := session.Must(session.NewSession(&aws.Config{
-		Region: aws.String(region),
-	}))
-	cli := ec2.New(sess)
+	ctx := context.TODO()
+	cli, err := myec2.MakeEC2Client(ctx, region)
+	if err != nil {
+		log.Printf("failed ec2 client initialization: %v", err)
+		return
+	}
 
 	if !c.Bool(OPT_WITHOUT_CONFIRM) {
-		insts, err := myec2.GetInstancesFromId(cli, ids...)
+		insts, err := myec2.GetInstancesFromId(ctx, cli, ids...)
 		if err != nil {
 			log.Fatalln("failed retrieve instance info for confirm.")
 			return
@@ -1038,7 +1049,7 @@ func doEc2Terminate(c *cli.Context) {
 		DryRun:      aws.Bool(dryrun),
 	}
 
-	resp, err := cli.TerminateInstances(params)
+	resp, err := cli.TerminateInstances(ctx, params)
 	if err != nil {
 		log.Fatalf("error during terminate instance: %v", err)
 		return
@@ -1046,8 +1057,8 @@ func doEc2Terminate(c *cli.Context) {
 
 	for _, status := range resp.TerminatingInstances {
 		id := convertNilString(status.InstanceId)
-		pState := convertNilString(status.PreviousState.Name)
-		cState := convertNilString(status.CurrentState.Name)
+		pState := convertNilString((*string)(&status.PreviousState.Name))
+		cState := convertNilString((*string)(&status.CurrentState.Name))
 		log.Printf("terminated %s: %s -> %s", id, pState, cState)
 	}
 }
@@ -1069,7 +1080,7 @@ func doEc2Tag(c *cli.Context) {
 	}
 
 	instanceId := c.String(OPT_INSTANCE_ID)
-	var ids []*string
+	var ids []string
 	if instanceId == "" {
 
 		h, err := NewRnzooCStoreManager()
@@ -1088,7 +1099,7 @@ func doEc2Tag(c *cli.Context) {
 		}
 
 	} else {
-		ids = []*string{aws.String(instanceId)}
+		ids = []string{instanceId}
 	}
 
 	if len(ids) == 0 {
@@ -1096,34 +1107,37 @@ func doEc2Tag(c *cli.Context) {
 		return
 	}
 
+	ctx := context.TODO()
+	cli, err := myec2.MakeEC2Client(ctx, region)
+	if err != nil {
+		log.Printf("failed ec2 client initialization: %v", err)
+		return
+	}
+
 	// parse tag pairs ex) Key1=Value1,Key2=Value2
 	if optTagPairs != "" {
 		pairs := strings.Split(optTagPairs, ",")
 
-		tags := make([]*ec2.Tag, 0, len(pairs))
+		tags := make([]types.Tag, 0, len(pairs))
 		for _, pair := range pairs {
 			kv := strings.SplitN(pair, "=", 2)
 			if kv[0] == "" {
 				continue
 			}
 
-			tag := &ec2.Tag{
+			tag := types.Tag{
 				Key:   aws.String(kv[0]),
 				Value: aws.String(kv[1]),
 			}
 			tags = append(tags, tag)
 		}
 
-		sess := session.Must(session.NewSession(&aws.Config{
-			Region: aws.String(region),
-		}))
-		cli := ec2.New(sess)
 		params := &ec2.CreateTagsInput{
 			Resources: ids,
 			Tags:      tags,
 		}
 
-		_, err = cli.CreateTags(params)
+		_, err = cli.CreateTags(ctx, params)
 		if err != nil {
 			log.Fatalf("error during create tags to instance: %v", err)
 			return
@@ -1134,24 +1148,20 @@ func doEc2Tag(c *cli.Context) {
 	if optDeleteKeys != "" {
 		keys := strings.Split(optDeleteKeys, ",")
 
-		tags := make([]*ec2.Tag, 0, 1)
+		tags := make([]types.Tag, 0, 1)
 		for _, key := range keys {
-			tag := &ec2.Tag{
+			tag := types.Tag{
 				Key: aws.String(key),
 			}
 			tags = append(tags, tag)
 		}
 
-		sess := session.Must(session.NewSession(&aws.Config{
-			Region: aws.String(region),
-		}))
-		cli := ec2.New(sess)
 		params := &ec2.DeleteTagsInput{
 			Resources: ids,
 			Tags:      tags,
 		}
 
-		_, err = cli.DeleteTags(params)
+		_, err = cli.DeleteTags(ctx, params)
 		if err != nil {
 			log.Fatalf("error during delete tags to instance: %v", err)
 			return
@@ -1283,8 +1293,9 @@ func doMoveEIP(c *cli.Context) {
 		log.Fatalln(err)
 	}
 
+	ctx := context.TODO()
 	// EIP listing
-	allocIds, err := myec2.ChooseEIP(region)
+	allocIds, err := myec2.ChooseEIP(ctx, region)
 
 	if len(allocIds) == 0 {
 		log.Fatalf("error during selecting to EIP: %s", err.Error())
@@ -1305,19 +1316,20 @@ func doMoveEIP(c *cli.Context) {
 	// one instance
 	instanceId := ""
 	if len(ids) >= 1 {
-		instanceId = *ids[0]
+		instanceId = ids[0]
 	} else {
 		log.Fatalf("error during selecting to instance: %s", err.Error())
 	}
 
 	// moving
-	sess := session.Must(session.NewSession(&aws.Config{
-		Region: aws.String(region),
-	}))
-	cli := ec2.New(sess)
+	cli, err := myec2.MakeEC2Client(ctx, region)
+	if err != nil {
+		log.Printf("failed ec2 client initialization: %v", err)
+		return
+	}
 
 	if !c.Bool(OPT_WITHOUT_CONFIRM) {
-		insts, err := myec2.GetInstancesFromId(cli, &instanceId)
+		insts, err := myec2.GetInstancesFromId(ctx, cli, instanceId)
 		if err != nil {
 			log.Fatalln("failed retrieve instance info for confirm.")
 			return
@@ -1348,7 +1360,7 @@ func doMoveEIP(c *cli.Context) {
 		}
 	}
 
-	assocId, err := myec2.AssociateEIP(cli, allocIds[0].AllocationId, instanceId)
+	assocId, err := myec2.AssociateEIP(ctx, cli, allocIds[0].AllocationId, instanceId)
 	if err != nil {
 		log.Fatalf("error during moving EIP: %s", err.Error())
 	}
@@ -1384,7 +1396,7 @@ func doAttachEIP(c *cli.Context) {
 
 		// one instance
 		if len(ids) >= 1 {
-			instanceId = *ids[0]
+			instanceId = ids[0]
 		}
 	} else {
 		err := validateInstanceId(instanceId)
@@ -1394,15 +1406,18 @@ func doAttachEIP(c *cli.Context) {
 	}
 
 	reuseEIP := c.Bool(OPT_REUSE)
-	sess := session.Must(session.NewSession(&aws.Config{
-		Region: aws.String(region),
-	}))
-	cli := ec2.New(sess)
+
+	ctx := context.TODO()
+	cli, err := myec2.MakeEC2Client(ctx, region)
+	if err != nil {
+		log.Printf("failed ec2 client initialization: %v", err)
+		return
+	}
 
 	var allocId string
 	var ip string
 	if reuseEIP {
-		address, err := myec2.GetNotAssociateEIP(cli)
+		address, err := myec2.GetNotAssociateEIP(ctx, cli)
 		if err != nil {
 			log.Printf("failed no associate address so allocate new address...")
 		}
@@ -1415,7 +1430,7 @@ func doAttachEIP(c *cli.Context) {
 	}
 
 	if allocId == "" {
-		aid, pip, err := myec2.AllocateEIP(cli)
+		aid, pip, err := myec2.AllocateEIP(ctx, cli)
 		if err != nil {
 			log.Fatalf("failed allocation address:%s", err.Error())
 		}
@@ -1425,7 +1440,7 @@ func doAttachEIP(c *cli.Context) {
 		log.Printf("allocated allocation_id:%s\tpublic_ip:%s", allocId, ip)
 	}
 
-	associationId, err := myec2.AssociateEIP(cli, allocId, instanceId)
+	associationId, err := myec2.AssociateEIP(ctx, cli, allocId, instanceId)
 	if err != nil {
 		log.Fatalf("failed associate address:%s", err.Error())
 	}
@@ -1459,7 +1474,7 @@ func doDetachEIP(c *cli.Context) {
 
 		// one instance
 		if len(ids) >= 1 {
-			instanceId = *ids[0]
+			instanceId = ids[0]
 		}
 	} else {
 		err := validateInstanceId(instanceId)
@@ -1468,17 +1483,20 @@ func doDetachEIP(c *cli.Context) {
 		}
 	}
 
-	sess := session.Must(session.NewSession(&aws.Config{
-		Region: aws.String(region),
-	}))
-	cli := ec2.New(sess)
-	address, err := myec2.GetEIPFromInstance(cli, instanceId)
+	ctx := context.TODO()
+	cli, err := myec2.MakeEC2Client(ctx, region)
+	if err != nil {
+		log.Printf("failed ec2 client initialization: %v", err)
+		return
+	}
+
+	address, err := myec2.GetEIPFromInstance(ctx, cli, instanceId)
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
 
 	if !c.Bool(OPT_WITHOUT_CONFIRM) {
-		insts, err := myec2.GetInstancesFromId(cli, &instanceId)
+		insts, err := myec2.GetInstancesFromId(ctx, cli, instanceId)
 		if err != nil {
 			log.Fatalln("failed retrieve instance info for confirm.")
 			return
@@ -1510,7 +1528,7 @@ func doDetachEIP(c *cli.Context) {
 	ip := convertNilString(address.PublicIp)
 	iid := convertNilString(address.InstanceId)
 
-	err = myec2.DisassociateEIP(cli, convertNilString(address.AssociationId))
+	err = myec2.DisassociateEIP(ctx, cli, convertNilString(address.AssociationId))
 	if err != nil {
 		log.Fatalf("failed disassociate address:%s", err.Error())
 	}
@@ -1518,7 +1536,7 @@ func doDetachEIP(c *cli.Context) {
 	log.Printf("disassociated assciation_id:%s\tpublic_ip:%s\tinstance_id:%s", associationId, ip, iid)
 
 	if !withoutRelease {
-		err := myec2.ReleaseEIP(cli, convertNilString(address.AllocationId))
+		err := myec2.ReleaseEIP(ctx, cli, convertNilString(address.AllocationId))
 		if err != nil {
 			log.Fatalf("failed release address:%s", err.Error())
 		}

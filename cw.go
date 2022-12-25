@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatch"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 )
 
 type Billing struct {
@@ -15,8 +17,13 @@ type Billing struct {
 }
 
 func GetBillingEstimatedCharges() (*Billing, error) {
-	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String("us-east-1")}))
-	svc := cloudwatch.New(sess)
+	ctx := context.TODO()
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion("us-east-1"))
+	if err != nil {
+		return nil, err
+	}
+
+	svc := cloudwatch.NewFromConfig(cfg)
 
 	startTime := time.Now().Add(time.Hour * -8)
 	endTime := time.Now()
@@ -28,19 +35,19 @@ func GetBillingEstimatedCharges() (*Billing, error) {
 		EndTime:    aws.Time(endTime),
 		MetricName: aws.String("EstimatedCharges"),
 		Namespace:  aws.String("AWS/Billing"),
-		Period:     aws.Int64(86400),
+		Period:     aws.Int32(86400),
 		StartTime:  aws.Time(startTime),
-		Dimensions: []*cloudwatch.Dimension{
-			&cloudwatch.Dimension{
+		Dimensions: []types.Dimension{
+			types.Dimension{
 				Name:  aws.String("Currency"),
 				Value: aws.String("USD"),
 			},
 		},
-		Statistics: []*string{
-			aws.String("Maximum"),
+		Statistics: []types.Statistic{
+			types.StatisticMaximum,
 		},
 	}
-	resp, err := svc.GetMetricStatistics(params)
+	resp, err := svc.GetMetricStatistics(ctx, params)
 	if err != nil {
 		return nil, err
 	}

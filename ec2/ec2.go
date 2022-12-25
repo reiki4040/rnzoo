@@ -2,6 +2,7 @@ package ec2
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -9,9 +10,10 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 
 	"github.com/reiki4040/cstore"
 	"github.com/reiki4040/peco"
@@ -24,6 +26,15 @@ const (
 	EC2_STATE_RUNNING = "running"
 	EC2_STATE_STOPPED = "stopped"
 )
+
+func MakeEC2Client(ctx context.Context, region string) (*ec2.Client, error) {
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
+	if err != nil {
+		return nil, err
+	}
+
+	return ec2.NewFromConfig(cfg), nil
+}
 
 func ConvertChoosableList(ec2List []*ChoosableEC2) []peco.Choosable {
 	choices := make([]peco.Choosable, 0, len(ec2List))
@@ -76,7 +87,7 @@ func (e ChoosableEC2s) Less(i, j int) bool {
 }
 
 type Instances struct {
-	Instances []*ec2.Instance `json:"ec2_instances"`
+	Instances []types.Instance `json:"ec2_instances"`
 }
 
 func NewEC2Handler(m *cstore.Manager) *EC2Handler {
@@ -89,7 +100,7 @@ type EC2Handler struct {
 	Manager *cstore.Manager
 }
 
-func (h *EC2Handler) ChooseEC2(region, state string, reload bool) ([]*string, error) {
+func (h *EC2Handler) ChooseEC2(region, state string, reload bool) ([]string, error) {
 	ec2list, err := h.LoadChoosableEC2List(region, state, reload)
 	if err != nil {
 		return nil, err
@@ -102,10 +113,10 @@ func (h *EC2Handler) ChooseEC2(region, state string, reload bool) ([]*string, er
 		return nil, err
 	}
 
-	ids := make([]*string, 0, len(chosens))
+	ids := make([]string, 0, len(chosens))
 	for _, c := range chosens {
 		if ec2, ok := c.(*ChoosableEC2); ok {
-			ids = append(ids, aws.String(ec2.InstanceId))
+			ids = append(ids, ec2.InstanceId)
 		}
 	}
 
@@ -118,7 +129,7 @@ func (r *EC2Handler) GetCacheStore(region string) (*cstore.CStore, error) {
 }
 
 func (r *EC2Handler) LoadChoosableEC2List(region, state string, reload bool) ([]*ChoosableEC2, error) {
-	var instances []*ec2.Instance
+	var instances []types.Instance
 	cacheStore, _ := r.GetCacheStore(region)
 
 	is := Instances{}
@@ -149,7 +160,7 @@ func (r *EC2Handler) LoadChoosableEC2List(region, state string, reload bool) ([]
 	return choices, nil
 }
 
-func ConvertChoosableEC2List(instances []*ec2.Instance, state string) []*ChoosableEC2 {
+func ConvertChoosableEC2List(instances []types.Instance, state string) []*ChoosableEC2 {
 	choosableEC2List := make([]*ChoosableEC2, 0, len(instances))
 	for _, i := range instances {
 		e := convertChoosable(i)
@@ -168,10 +179,10 @@ func ConvertChoosableEC2List(instances []*ec2.Instance, state string) []*Choosab
 	return choosableEC2List
 }
 
-func convertChoosable(i *ec2.Instance) *ChoosableEC2 {
+func convertChoosable(ins types.Instance) *ChoosableEC2 {
 
 	var nameTag string
-	for _, tag := range i.Tags {
+	for _, tag := range ins.Tags {
 		if convertNilString(tag.Key) == "Name" {
 			nameTag = convertNilString(tag.Value)
 			break
@@ -179,7 +190,7 @@ func convertChoosable(i *ec2.Instance) *ChoosableEC2 {
 	}
 
 	ipv6 := ""
-	for _, ni := range i.NetworkInterfaces {
+	for _, ni := range ins.NetworkInterfaces {
 		for _, v6addr := range ni.Ipv6Addresses {
 			if v6 := convertNilString(v6addr.Ipv6Address); v6 != "" {
 				ipv6 = v6
@@ -187,12 +198,11 @@ func convertChoosable(i *ec2.Instance) *ChoosableEC2 {
 			}
 		}
 	}
-	ins := *i
 	c := &ChoosableEC2{
 		InstanceId:   convertNilString(ins.InstanceId),
 		Name:         nameTag,
-		Status:       convertNilString(ins.State.Name),
-		InstanceType: convertNilString(ins.InstanceType),
+		Status:       convertNilString((*string)(&ins.State.Name)),
+		InstanceType: convertNilString((*string)(&ins.InstanceType)),
 		PublicIP:     convertNilString(ins.PublicIpAddress),
 		PrivateIP:    convertNilString(ins.PrivateIpAddress),
 		IPv6:         ipv6,
@@ -201,19 +211,24 @@ func convertChoosable(i *ec2.Instance) *ChoosableEC2 {
 	return c
 }
 
-func GetInstances(region string) ([]*ec2.Instance, error) {
-	cli := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
+func GetInstances(region string) ([]types.Instance, error) {
+	ctx := context.TODO()
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
+	if err != nil {
+		return nil, err
+	}
 
-	resp, err := cli.DescribeInstances(nil)
+	cli := ec2.NewFromConfig(cfg)
+	resp, err := cli.DescribeInstances(ctx, &ec2.DescribeInstancesInput{})
 	if err != nil {
 		return nil, err
 	}
 
 	if len(resp.Reservations) == 0 {
-		return []*ec2.Instance{}, nil
+		return []types.Instance{}, nil
 	}
 
-	instances := make([]*ec2.Instance, 0)
+	instances := make([]types.Instance, 0)
 	for _, r := range resp.Reservations {
 		for _, i := range r.Instances {
 			instances = append(instances, i)
@@ -223,21 +238,21 @@ func GetInstances(region string) ([]*ec2.Instance, error) {
 	return instances, nil
 }
 
-func GetInstancesFromId(cli *ec2.EC2, ids ...*string) ([]*ec2.Instance, error) {
+func GetInstancesFromId(ctx context.Context, cli *ec2.Client, ids ...string) ([]types.Instance, error) {
 	param := &ec2.DescribeInstancesInput{
 		InstanceIds: ids,
 	}
 
-	resp, err := cli.DescribeInstances(param)
+	resp, err := cli.DescribeInstances(ctx, param)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(resp.Reservations) == 0 {
-		return []*ec2.Instance{}, nil
+		return []types.Instance{}, nil
 	}
 
-	instances := make([]*ec2.Instance, 0)
+	instances := make([]types.Instance, 0)
 	for _, r := range resp.Reservations {
 		for _, i := range r.Instances {
 			instances = append(instances, i)
@@ -263,8 +278,8 @@ func (c *ChoosableEIP) Value() string {
 	return c.AllocationId
 }
 
-func ChooseEIP(region string) ([]*ChoosableEIP, error) {
-	EIPs, err := LoadEIPList(region)
+func ChooseEIP(ctx context.Context, region string) ([]*ChoosableEIP, error) {
+	EIPs, err := LoadEIPList(ctx, region)
 	if err != nil {
 		return nil, err
 	}
@@ -294,9 +309,14 @@ func ConvertChoosableEIPList(eipList []*ChoosableEIP) []peco.Choosable {
 	return choices
 }
 
-func LoadEIPList(region string) ([]*ChoosableEIP, error) {
-	cli := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
-	resp, err := cli.DescribeAddresses(nil)
+func LoadEIPList(ctx context.Context, region string) ([]*ChoosableEIP, error) {
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
+	if err != nil {
+		return nil, err
+	}
+
+	cli := ec2.NewFromConfig(cfg)
+	resp, err := cli.DescribeAddresses(ctx, &ec2.DescribeAddressesInput{})
 	if err != nil {
 		return nil, err
 	}
@@ -331,58 +351,58 @@ func LoadEIPList(region string) ([]*ChoosableEIP, error) {
 	return cEIPs, nil
 }
 
-func AssociateEIP(cli *ec2.EC2, eipAllocId, instanceId string) (*string, error) {
+func AssociateEIP(ctx context.Context, cli *ec2.Client, eipAllocId, instanceId string) (*string, error) {
 	params := &ec2.AssociateAddressInput{
 		AllocationId:       aws.String(eipAllocId),
 		AllowReassociation: aws.Bool(true),
 		InstanceId:         aws.String(instanceId),
 	}
-	resp, err := cli.AssociateAddress(params)
+	resp, err := cli.AssociateAddress(ctx, params)
 
 	return resp.AssociationId, err
 }
 
-func AllocateEIP(cli *ec2.EC2) (*string, *string, error) {
+func AllocateEIP(ctx context.Context, cli *ec2.Client) (*string, *string, error) {
 	params := &ec2.AllocateAddressInput{
-		Domain: aws.String("vpc"),
+		Domain: types.DomainTypeVpc,
 	}
-	resp, err := cli.AllocateAddress(params)
+	resp, err := cli.AllocateAddress(ctx, params)
 	return resp.AllocationId, resp.PublicIp, err
 }
 
-func DisassociateEIP(cli *ec2.EC2, allocId string) error {
+func DisassociateEIP(ctx context.Context, cli *ec2.Client, allocId string) error {
 	params := &ec2.DisassociateAddressInput{
 		AssociationId: aws.String(allocId),
 	}
 
 	// resp is empty struct
-	_, err := cli.DisassociateAddress(params)
+	_, err := cli.DisassociateAddress(ctx, params)
 
 	return err
 }
 
-func ReleaseEIP(cli *ec2.EC2, allocId string) error {
+func ReleaseEIP(ctx context.Context, cli *ec2.Client, allocId string) error {
 	params := &ec2.ReleaseAddressInput{
 		AllocationId: aws.String(allocId),
 	}
 
 	// resp is empty struct
-	_, err := cli.ReleaseAddress(params)
+	_, err := cli.ReleaseAddress(ctx, params)
 	return err
 }
 
-func GetEIPFromInstance(cli *ec2.EC2, instanceId string) (*ec2.Address, error) {
+func GetEIPFromInstance(ctx context.Context, cli *ec2.Client, instanceId string) (*types.Address, error) {
 	params := &ec2.DescribeAddressesInput{
-		Filters: []*ec2.Filter{
-			&ec2.Filter{
+		Filters: []types.Filter{
+			types.Filter{
 				Name: aws.String("instance-id"),
-				Values: []*string{
-					aws.String(instanceId),
+				Values: []string{
+					instanceId,
 				},
 			},
 		},
 	}
-	resp, err := cli.DescribeAddresses(params)
+	resp, err := cli.DescribeAddresses(ctx, params)
 	if err != nil {
 		return nil, err
 	}
@@ -392,13 +412,13 @@ func GetEIPFromInstance(cli *ec2.EC2, instanceId string) (*ec2.Address, error) {
 	}
 
 	address := resp.Addresses[0]
-	return address, nil
+	return &address, nil
 }
 
-func GetNotAssociateEIP(cli *ec2.EC2) (*ec2.Address, error) {
+func GetNotAssociateEIP(ctx context.Context, cli *ec2.Client) (*types.Address, error) {
 	params := &ec2.DescribeAddressesInput{}
 
-	resp, err := cli.DescribeAddresses(params)
+	resp, err := cli.DescribeAddresses(ctx, params)
 	if err != nil {
 		return nil, err
 	}
@@ -406,7 +426,7 @@ func GetNotAssociateEIP(cli *ec2.EC2) (*ec2.Address, error) {
 	if len(resp.Addresses) >= 1 {
 		for _, address := range resp.Addresses {
 			if address.InstanceId == nil {
-				return address, nil
+				return &address, nil
 			}
 		}
 	}
@@ -418,7 +438,7 @@ type Launcher struct {
 	AmiId              string
 	InstanceType       string
 	KeyName            string
-	SecurityGroupIds   []*string
+	SecurityGroupIds   []string
 	PublicIpEnabled    bool
 	Ipv6Enabled        bool
 	IamRoleName        *string
@@ -438,20 +458,20 @@ type Ebs struct {
 	VolumeType          string
 }
 
-func (d *Launcher) Launch(cli *ec2.EC2, subnetId string, count int, dryrun bool) (*ec2.Reservation, error) {
-	var ebsMappings []*ec2.BlockDeviceMapping
+func (d *Launcher) Launch(ctx context.Context, cli *ec2.Client, subnetId string, count int, dryrun bool) (*ec2.RunInstancesOutput, error) {
+	var ebsMappings []types.BlockDeviceMapping
 	if len(d.EbsDevices) > 0 {
-		ebsMappings = make([]*ec2.BlockDeviceMapping, 0, len(d.EbsDevices))
+		ebsMappings = make([]types.BlockDeviceMapping, 0, len(d.EbsDevices))
 		for _, ebs := range d.EbsDevices {
-			m := &ec2.BlockDeviceMapping{
+			m := types.BlockDeviceMapping{
 				DeviceName: aws.String(ebs.DeviceName),
-				Ebs: &ec2.EbsBlockDevice{
+				Ebs: &types.EbsBlockDevice{
 					DeleteOnTermination: aws.Bool(ebs.DeleteOnTermination),
 					Encrypted:           ebs.Encrypted,
 					//Iops:                aws.Int64(100),
 					//SnapshotId:          aws.String("String"),
-					VolumeSize: aws.Int64(ebs.SizeGB),
-					VolumeType: aws.String(ebs.VolumeType),
+					VolumeSize: aws.Int32(int32(ebs.SizeGB)),
+					VolumeType: types.VolumeType(ebs.VolumeType),
 				},
 				//NoDevice:    aws.String("String"),
 				//VirtualName: aws.String("String"),
@@ -471,10 +491,11 @@ func (d *Launcher) Launch(cli *ec2.EC2, subnetId string, count int, dryrun bool)
 		ipv6count = aws.Int64(1)
 	}
 
-	var placement *ec2.Placement
+	var placement *types.Placement
 	if d.PlacementGroupName != "" {
-		placement = &ec2.Placement{}
-		placement.SetGroupName(d.PlacementGroupName)
+		placement = &types.Placement{
+			GroupName: aws.String(d.PlacementGroupName),
+		}
 	}
 
 	var userData string
@@ -484,19 +505,19 @@ func (d *Launcher) Launch(cli *ec2.EC2, subnetId string, count int, dryrun bool)
 
 	params := &ec2.RunInstancesInput{
 		ImageId:             aws.String(d.AmiId),
-		MaxCount:            aws.Int64(int64(count)),
-		MinCount:            aws.Int64(int64(count)),
+		MaxCount:            aws.Int32(int32(count)),
+		MinCount:            aws.Int32(int32(count)),
 		BlockDeviceMappings: ebsMappings,
 		//AdditionalInfo: aws.String("String"),
 		//ClientToken:           aws.String("String"),
 		//DisableApiTermination: aws.Bool(true),
 		DryRun:       aws.Bool(dryrun),
 		EbsOptimized: aws.Bool(d.EbsOptimized),
-		IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
-			//Arn: aws.String("arn:aws:iam::694958806517:instance-profile/sample_iamrole"),
+		IamInstanceProfile: &types.IamInstanceProfileSpecification{
+			//Arn: aws.String("arn:aws:iam::<aws_id>:instance-profile/sample_iamrole"),
 			Name: d.IamRoleName,
 		},
-		InstanceType: aws.String(d.InstanceType),
+		InstanceType: types.InstanceType(d.InstanceType),
 		//Ipv6AddressCount: aws.Int64(1),
 		//Ipv6Addresses: []*ec2.InstanceIpv6Address{
 		//	{ // Required
@@ -509,13 +530,13 @@ func (d *Launcher) Launch(cli *ec2.EC2, subnetId string, count int, dryrun bool)
 		//Monitoring: &ec2.RunInstancesMonitoringEnabled{
 		//	Enabled: aws.Bool(true), // Required
 		//},
-		NetworkInterfaces: []*ec2.InstanceNetworkInterfaceSpecification{
-			&ec2.InstanceNetworkInterfaceSpecification{
+		NetworkInterfaces: []types.InstanceNetworkInterfaceSpecification{
+			types.InstanceNetworkInterfaceSpecification{
 				AssociatePublicIpAddress: aws.Bool(d.PublicIpEnabled),
-				DeviceIndex:              aws.Int64(0),
+				DeviceIndex:              aws.Int32(0),
 				SubnetId:                 aws.String(subnetId),
 				Groups:                   d.SecurityGroupIds,
-				Ipv6AddressCount:         ipv6count,
+				Ipv6AddressCount:         aws.Int32(int32(*ipv6count)),
 			},
 		},
 		//	{ // Required
@@ -564,12 +585,11 @@ func (d *Launcher) Launch(cli *ec2.EC2, subnetId string, count int, dryrun bool)
 		UserData: aws.String(userData),
 	}
 
-	return cli.RunInstances(params)
-
+	return cli.RunInstances(ctx, params)
 }
 
-func GetBlockDeviceMappings(cli *ec2.EC2, instanceId string) ([]*ec2.InstanceBlockDeviceMapping, error) {
-	descIns, err := GetInstancesFromId(cli, &instanceId)
+func GetBlockDeviceMappings(ctx context.Context, cli *ec2.Client, instanceId string) ([]types.InstanceBlockDeviceMapping, error) {
+	descIns, err := GetInstancesFromId(ctx, cli, instanceId)
 	if err != nil {
 		return nil, err
 	}

@@ -24,6 +24,9 @@ import (
 )
 
 const (
+	CategoryEC2 = "ec2"
+	CategoryEIP = "eip"
+
 	EC2LIST_DESC = `
      show your ec2 info at ap-northeast-1
 
@@ -87,6 +90,7 @@ var commandInit = cli.Command{
 var commandEc2list = cli.Command{
 	Name:        "ec2list",
 	Aliases:     []string{"ls"},
+	Category:    CategoryEC2,
 	Usage:       EC2LIST_USAGE,
 	Description: EC2LIST_DESC,
 	Action:      doEc2list,
@@ -112,6 +116,7 @@ var commandEc2list = cli.Command{
 var commandEc2start = cli.Command{
 	Name:        "ec2start",
 	Aliases:     []string{"start"},
+	Category:    CategoryEC2,
 	Usage:       "start ec2",
 	Description: `start ec2 that already exists.`,
 	Action:      doEc2start,
@@ -135,6 +140,7 @@ var commandEc2start = cli.Command{
 var commandEc2stop = cli.Command{
 	Name:        "ec2stop",
 	Aliases:     []string{"stop"},
+	Category:    CategoryEC2,
 	Usage:       "stop ec2",
 	Description: `stop ec2 that already running.`,
 	Action:      doEc2stop,
@@ -158,6 +164,7 @@ var commandEc2stop = cli.Command{
 var commandEc2type = cli.Command{
 	Name:        "ec2type",
 	Aliases:     []string{"type"},
+	Category:    CategoryEC2,
 	Usage:       "modify ec2 instance type",
 	Description: EC2TYPE_DESC,
 	Action:      doEc2type,
@@ -190,6 +197,7 @@ var commandEc2type = cli.Command{
 var commandEc2run = cli.Command{
 	Name:        "ec2run",
 	Aliases:     []string{"run"},
+	Category:    CategoryEC2,
 	Usage:       "run new ec2 instances",
 	Description: EC2RUN_DESC,
 	Action:      doEc2run,
@@ -228,6 +236,7 @@ var commandEc2run = cli.Command{
 var commandEc2terminate = cli.Command{
 	Name:        "ec2terminate",
 	Aliases:     []string{"terminate"},
+	Category:    CategoryEC2,
 	Usage:       "terminate instances.",
 	Description: EC2TERMINATE_DESC,
 	Action:      doEc2Terminate,
@@ -263,6 +272,7 @@ var commandEc2terminate = cli.Command{
 var commandEc2Tag = cli.Command{
 	Name:        "ec2tag",
 	Aliases:     []string{"tag"},
+	Category:    CategoryEC2,
 	Usage:       "attach tag to ec2 instance.",
 	Description: EC2TAG_DESC,
 	Action:      doEc2Tag,
@@ -1211,6 +1221,7 @@ var (
 
 var commandAttachEIP = cli.Command{
 	Name:        "attach-eip",
+	Category:    CategoryEIP,
 	Usage:       "allocate new EIP(allow reassociate) and associate it to the instance.",
 	Description: `allocate new EIP(allow reassociate) and associate it to the instance.`,
 	Action:      doAttachEIP,
@@ -1237,6 +1248,7 @@ var commandAttachEIP = cli.Command{
 
 var commandMoveEIP = cli.Command{
 	Name:        "move-eip",
+	Category:    CategoryEIP,
 	Usage:       "reallocate EIP(allow reassociate) to other instance.",
 	Description: "reallocate EIP(allow reassociate) to other instance.",
 	Action:      doMoveEIP,
@@ -1255,6 +1267,7 @@ var commandMoveEIP = cli.Command{
 
 var commandDetachEIP = cli.Command{
 	Name:        "detach-eip",
+	Category:    CategoryEIP,
 	Usage:       "disassociate EIP and release it.",
 	Description: `disassociate EIP and release it.`,
 	Action:      doDetachEIP,

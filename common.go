@@ -8,7 +8,7 @@ import (
 	"os/user"
 	"strings"
 
-	"github.com/codegangsta/cli"
+	"github.com/urfave/cli/v2"
 )
 
 const (
@@ -62,8 +62,8 @@ func msg(v ...interface{}) {
 }
 
 func prepare(c *cli.Context) {
-	silent = c.GlobalBool(OPT_SILENT)
-	verbose = c.GlobalBool(OPT_VERBOSE)
+	silent = c.Bool(OPT_SILENT)
+	verbose = c.Bool(OPT_VERBOSE)
 }
 
 func debug(v ...interface{}) {

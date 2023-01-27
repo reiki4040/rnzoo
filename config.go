@@ -3,33 +3,31 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"os"
 
-	"github.com/codegangsta/cli"
+	"github.com/urfave/cli/v2"
 
 	"github.com/reiki4040/cstore"
 	"github.com/reiki4040/peco"
 )
 
-func doInit(c *cli.Context) {
-
+func doInit(c *cli.Context) error {
 	m, err := NewCStoreManager()
 	if err != nil {
-		log.Printf("can not load EC2: %s\n", err.Error())
+		return cli.Exit(fmt.Sprintf("can not load EC2: %s", err.Error()), 1)
 	}
 
 	cs, err := m.New("config", cstore.TOML)
 	if err != nil {
-		log.Fatalf("error during init: %s", err.Error())
+		return cli.Exit(fmt.Sprintf("error during init: %s", err.Error()), 1)
 	}
 
 	err = DoConfigWizard(cs)
 	if err != nil {
-		log.Fatalf("error during init: %s", err.Error())
+		return cli.Exit(fmt.Sprintf("error during init: %s", err.Error()), 1)
 	}
 
-	log.Printf("saved rnzoo config.")
+	return cli.Exit("saved rnzoo config.", 1)
 }
 
 func GetDefaultConfig() (*RnzooConfig, error) {

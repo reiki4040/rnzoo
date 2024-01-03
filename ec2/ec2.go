@@ -486,9 +486,11 @@ func (d *Launcher) Launch(ctx context.Context, cli *ec2.Client, subnetId string,
 		keyName = &d.KeyName
 	}
 
-	var ipv6count *int64
+	var ipv6count int32
 	if d.Ipv6Enabled {
-		ipv6count = aws.Int64(1)
+		ipv6count = 1
+	} else {
+		ipv6count = 0
 	}
 
 	var placement *types.Placement
@@ -536,7 +538,7 @@ func (d *Launcher) Launch(ctx context.Context, cli *ec2.Client, subnetId string,
 				DeviceIndex:              aws.Int32(0),
 				SubnetId:                 aws.String(subnetId),
 				Groups:                   d.SecurityGroupIds,
-				Ipv6AddressCount:         aws.Int32(int32(*ipv6count)),
+				Ipv6AddressCount:         aws.Int32(ipv6count),
 			},
 		},
 		//	{ // Required
